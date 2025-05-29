@@ -1,0 +1,34 @@
+line-length = 120
+target-version = "py313"
+lint.pydocstyle.convention = "google"
+lint.select = [
+    'E',
+    'F',
+    'W',
+    'A',
+    'PL',
+    'I',
+    'TCH',
+    'SIM',
+    'RUF',
+    'ASYNC',
+    'C4',
+    'INP',
+    'ERA',
+    'SLF',
+    'PIE',
+    'PYI',
+    'ANN',
+    'N',
+    'D'
+]
+lint.ignore = [
+    'ANN002',
+    'ANN003',
+    'D107',
+    'D203',
+    'D213',
+    'D100',
+    'D101',
+    'D104',
+]
