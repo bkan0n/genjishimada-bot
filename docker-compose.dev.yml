@@ -1,0 +1,21 @@
+services:
+  genjishimada-bot-dev:
+    restart: unless-stopped
+    container_name: genjishimada-bot-dev
+    build: .
+    networks:
+      - genji-network
+    environment:
+      - SENTRY_DSN=${SENTRY_DSN}
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - BOT_ENVIRONMENT=${BOT_ENVIRONMENT}
+      - SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
+      - SENTRY_FEEDBACK_URL=${SENTRY_FEEDBACK_URL}
+      - API_KEY=${API_KEY}
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+
+networks:
+  genji-network:
+    external: true

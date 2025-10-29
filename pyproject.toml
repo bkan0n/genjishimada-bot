@@ -1,14 +1,65 @@
 [project]
 name = "genjishimada"
+version = "0.1.0"
 description = "Genji Shimada, a Discord bot for the Genji Parkour community."
 requires-python = ">=3.13"
 dependencies = [
-    "discord-py>=2.5.2",
+    "aio-pika>=9.5.5",
+    "asyncpg>=0.30.0",
+    "discord-ext-menus",
+    "discord-py",
+    "genjipk-sdk",
+    "jishaku>=2.6.0",
+    "msgspec>=0.19.0",
+    "python-dotenv>=1.1.1",
     "sentry-sdk>=2.29.1",
+    "truststore>=0.10.4",
 ]
 
 [dependency-groups]
-dev = [
-    "basedpyright>=1.29.2",
-    "ruff>=0.11.12",
+dev = ["basedpyright>=1.29.2", "complexipy>=4.0.2", "ruff>=0.11.12"]
+
+[tool.uv.sources]
+discord-py = { git = "https://github.com/rapptz/discord.py", rev = "master" }
+discord-ext-menus = { git = "https://github.com/Rapptz/discord-ext-menus" }
+genjipk-sdk = { git = "https://github.com/bkan0n/genjipk-sdk" }
+
+[tool.ruff]
+exclude = ["tests"]
+line-length = 120
+target-version = "py313"
+
+lint.select = [
+    'E',
+    'F',
+    'W',
+    'A',
+    'PL',
+    'I',
+    'SIM',
+    'RUF',
+    'ASYNC',
+    'C4',
+    'INP',
+    'ERA',
+    'SLF',
+    'PIE',
+    'PYI',
+    'ANN',
+    'N',
+    'D',
 ]
+lint.ignore = [
+    'ANN002',
+    'ANN003',
+    'D203',
+    'D100',
+    'D101',
+    'D104',
+    'RUF012',
+    'TC002',
+    'D213',
+    'TC001',
+]
+[tool.ruff.lint.pydocstyle]
+convention = "google"

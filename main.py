@@ -1,20 +1,29 @@
+# ruff: noqa: E402
+import truststore
+
+truststore.inject_into_ssl()
 import asyncio
 import contextlib
 import logging
 import os
 from typing import Iterator
 
+import aiohttp
 import discord
 import sentry_sdk
+from dotenv import load_dotenv
 
 import core
+from utilities.errors import on_command_error
 
+load_dotenv(".env")
 SENTRY_DSN = os.getenv("SENTRY_DSN")
 BOT_ENVIRONMENT = os.getenv("BOT_ENVIRONMENT")
 
 
 class RemoveNoise(logging.Filter):
     def __init__(self) -> None:
+        """Remove noisy state logs."""
         super().__init__(name="discord.state")
 
     def filter(self, record: logging.LogRecord) -> bool:
@@ -24,6 +33,7 @@ class RemoveNoise(logging.Filter):
 
 class RemoveShardCloseNoise(logging.Filter):
     def __init__(self) -> None:
+        """Remove noisy shard close logs."""
         super().__init__(name="discord.client")
 
     def filter(self, record: logging.LogRecord) -> bool:
@@ -43,6 +53,12 @@ def setup_logging() -> Iterator[None]:
         logging.getLogger("discord.state").addFilter(RemoveNoise())
         logging.getLogger("discord.client").addFilter(RemoveShardCloseNoise())
         log.setLevel(logging.INFO)
+        if BOT_ENVIRONMENT == "development":
+            logging.getLogger("core").setLevel(logging.DEBUG)
+            logging.getLogger("extensions").setLevel(logging.DEBUG)
+            logging.getLogger("utilities").setLevel(logging.DEBUG)
+        else:
+            log.setLevel(logging.INFO)
         yield None
     finally:
         handlers = log.handlers[:]
@@ -62,12 +78,15 @@ async def main() -> None:
     )
     logging.getLogger("discord.gateway").setLevel("WARNING")
     prefix = "?" if BOT_ENVIRONMENT == "production" else "!"
-    bot = core.Genji(prefix=prefix)
+    async with aiohttp.ClientSession() as http_session:
+        bot = core.Genji(prefix=prefix, session=http_session)
 
-    async with bot:
-        await bot.start(os.environ["DISCORD_TOKEN"])
+        async with bot:
+            bot.tree.on_error = on_command_error  # pyright: ignore[reportAttributeAccessIssue]
+            await bot.start(os.environ["DISCORD_TOKEN"])
 
 
 if __name__ == "__main__":
     with setup_logging():
+        discord.VoiceClient.warn_nacl = False
         asyncio.run(main())
