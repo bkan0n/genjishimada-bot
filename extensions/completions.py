@@ -1006,7 +1006,7 @@ class SetSuspiciousModal(ui.Modal):
             itx: The interaction context associated with the modal.
         """
         await itx.response.defer(ephemeral=True, thinking=True)
-        if self.flag_type.value not in get_args(SuspiciousFlag):
+        if self.flag_type.component.value not in get_args(SuspiciousFlag):
             await itx.edit_original_response(
                 content=f"Flag type must be one of `{', '.join(get_args(SuspiciousFlag))}`",
             )
