@@ -1006,7 +1006,7 @@ class SetSuspiciousModal(ui.Modal):
             itx: The interaction context associated with the modal.
         """
         await itx.response.defer(ephemeral=True, thinking=True)
-        if self.flag_type.component.value not in get_args(SuspiciousFlag):
+        if self.flag_type.component.values[0] not in get_args(SuspiciousFlag):
             await itx.edit_original_response(
                 content=f"Flag type must be one of `{', '.join(get_args(SuspiciousFlag))}`",
             )
@@ -1014,7 +1014,7 @@ class SetSuspiciousModal(ui.Modal):
         data = SuspiciousCompletionWriteDTO(
             message_id=self.message_id,
             verification_id=self.verification_id,
-            flag_type=self.flag_type.component.value,  # pyright: ignore[reportArgumentType]
+            flag_type=self.flag_type.component.values[0],  # pyright: ignore[reportArgumentType]
             flagged_by=itx.user.id,
             context=self.context.value,
         )
