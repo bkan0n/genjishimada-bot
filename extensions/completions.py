@@ -963,7 +963,17 @@ class CompletionsUserPaginator(PaginatorView[CompletionUserFormattable]):
 
 
 class SetSuspiciousModal(ui.Modal):
-    flag_type = ui.TextInput(label="Flag Type")
+    flag_type = discord.ui.Label(
+        text="Flag Type",
+        description="Select the type of suspicious flag.",
+        component=discord.ui.Select(
+            placeholder="Choose a flag.",
+            options=[
+                discord.SelectOption(label="Cheating"),
+                discord.SelectOption(label="Scripting"),
+            ],
+        ),
+    )
     context = ui.TextInput(label="Context/Reason", style=TextStyle.long)
 
     def __init__(self, *, message_id: int | None = None, verification_id: int | None = None) -> None:
@@ -1004,7 +1014,7 @@ class SetSuspiciousModal(ui.Modal):
         data = SuspiciousCompletionWriteDTO(
             message_id=self.message_id,
             verification_id=self.verification_id,
-            flag_type=self.flag_type.value,  # pyright: ignore[reportArgumentType]
+            flag_type=self.flag_type.component.value,  # pyright: ignore[reportArgumentType]
             flagged_by=itx.user.id,
             context=self.context.value,
         )
