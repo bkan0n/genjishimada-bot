@@ -943,7 +943,7 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                 )
 
             case "Approve Submission":
-                await itx.response.defer(ephemeral=True, thinking=False)
+                await itx.response.defer(ephemeral=True, thinking=True)
                 if not self.view.data.playtest:
                     raise UserFacingError("This map data does not have a playtest attached. Contact nebula.")
                 data = await itx.client.api.get_all_votes(self.view.data.playtest.thread_id)
