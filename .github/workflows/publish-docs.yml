@@ -3,7 +3,7 @@ name: Publish Docs
 on:
   push:
     branches:
-      - docs-site
+      - main
   workflow_dispatch:
 
 permissions:
