@@ -1,0 +1,32 @@
+site_name: Genji Shimada Bot Docs
+site_description: Architecture and operations documentation for the Genji Shimada Discord bot.
+site_url: https://example.com
+repo_url: https://github.com/USER/REPO
+nav:
+  - Overview: index.md
+  - Architecture:
+      - Core Bot Lifecycle: architecture/core-bot.md
+      - Services & Extensions: architecture/services.md
+      - Messaging & Queues: architecture/messaging.md
+  - User Experience:
+      - Newsfeed & Embeds: ux/newsfeed-and-embeds.md
+  - Operations:
+      - Configuration & Deployment: operations/configuration.md
+  - Contributing:
+      - Working on the Docs: contributing/docs-workflow.md
+theme:
+  name: material
+  features:
+    - navigation.expand
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+markdown_extensions:
+  - admonition
+  - attr_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+plugins:
+  - search
