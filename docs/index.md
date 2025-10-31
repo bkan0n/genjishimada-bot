@@ -12,7 +12,7 @@ Welcome to the architecture and operations handbook for the Genji Shimada Discor
 
 - **Runtime:** Python 3.13+ with `discord.py` and a collection of domain-specific extensions.
 - **Infrastructure:** RabbitMQ for job queues, PostgreSQL for persistence, and optional Sentry monitoring.
-- **Local tooling:** [`just`](../justfile) recipes, Ruff linting, BasedPyright type checking, and container-based development via Docker Compose.
+- **Local tooling:** [`just`](https://github.com/bkan0n/genjishimada-bot/blob/main/justfile) recipes, Ruff linting, BasedPyright type checking, and container-based development via Docker Compose.
 
 ## Getting started
 

@@ -1,7 +1,7 @@
 site_name: Genji Shimada Bot Docs
 site_description: Architecture and operations documentation for the Genji Shimada Discord bot.
-site_url: https://example.com
-repo_url: https://github.com/USER/REPO
+site_url: https://bkan0n.github.io/genjishimada-bot/
+repo_url: https://github.com/bkan0n/genjishimada-bot
 nav:
   - Overview: index.md
   - Architecture:

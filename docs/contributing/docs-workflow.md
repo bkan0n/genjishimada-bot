@@ -37,7 +37,7 @@ This repository uses [MkDocs](https://www.mkdocs.org/) with the Material theme t
 ## Writing guidelines
 
 - Keep content narrative and architecture-focused—avoid auto-generated API dumps.
-- Link directly to source files (`../../path/to/file.py`) so readers can jump into the code.
+- Link directly to source files on GitHub (for example, `https://github.com/bkan0n/genjishimada-bot/blob/main/path/to/file.py`) so readers can jump into the code.
 - Add diagrams or tables where they improve clarity; store assets under `docs/assets/`.
 - Document new services, queues, or embeds as soon as they ship so this guide remains current.
 

@@ -4,14 +4,14 @@ This page explains how the main Discord bot process boots, configures intents, a
 
 ## Entry point
 
-The bot starts from [`main.py`](../../main.py), which defines the `run_bot` coroutine. Key steps:
+The bot starts from [`main.py`](https://github.com/bkan0n/genjishimada-bot/blob/main/main.py), which defines the `run_bot` coroutine. Key steps:
 
 1. Load configuration via `load_settings` and environment variables.
 2. Establish shared clients (PostgreSQL, RabbitMQ, HTTP) through the dependency container in `core.dependencies`.
 3. Instantiate the `Genji` bot subclass with intents defined in `core.client`.
 4. Register background services and extensions during `setup_hook`.
 
-The `Genji` class in [`core/client.py`](../../core/client.py) extends `discord.ext.commands.Bot`. It configures:
+The `Genji` class in [`core/client.py`](https://github.com/bkan0n/genjishimada-bot/blob/main/core/client.py) extends `discord.ext.commands.Bot`. It configures:
 
 - A custom `tree` sync strategy to keep slash commands consistent across guilds.
 - Gateway intents aligned with our feature set (message content, reactions, scheduled events).
@@ -19,12 +19,12 @@ The `Genji` class in [`core/client.py`](../../core/client.py) extends `discord.e
 
 ## Extension loading
 
-Extensions live in the `extensions/` package. During startup, `Genji.setup_hook` iterates through the registry defined in [`core/extensions.py`](../../core/extensions.py) and loads each extension module. Each extension exposes a `setup` function that adds a cog or registers tasks.
+Extensions live in the `extensions/` package. During startup, `Genji.setup_hook` iterates through the registry defined in [`core/extensions.py`](https://github.com/bkan0n/genjishimada-bot/blob/main/core/extensions.py) and loads each extension module. Each extension exposes a `setup` function that adds a cog or registers tasks.
 
 ### Base classes
 
-- `BaseExtension` in [`core/extensions/base.py`](../../core/extensions/base.py) standardizes access to shared resources like the dependency container.
-- `BaseService` in [`core/services/base.py`](../../core/services/base.py) provides lifecycle hooks (`start`, `stop`) and centralized error reporting.
+- `BaseExtension` in [`core/extensions/base.py`](https://github.com/bkan0n/genjishimada-bot/blob/main/core/extensions/base.py) standardizes access to shared resources like the dependency container.
+- `BaseService` in [`core/services/base.py`](https://github.com/bkan0n/genjishimada-bot/blob/main/core/services/base.py) provides lifecycle hooks (`start`, `stop`) and centralized error reporting.
 
 ## Startup sequencing
 

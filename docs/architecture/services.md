@@ -6,12 +6,12 @@ Services encapsulate long-lived behavior and shared integrations. Extensions pro
 
 | Service | Module | Responsibilities |
 | --- | --- | --- |
-| Notifications | [`extensions/notifications/service.py`](../../extensions/notifications/service.py) | Consumes queue events to deliver Discord notifications and manages notification-related views. |
-| Newsfeed | [`extensions/newsfeed/service.py`](../../extensions/newsfeed/service.py) | Generates the community newsfeed, composes embeds, and schedules refresh jobs. |
-| XP | [`extensions/xp/service.py`](../../extensions/xp/service.py) | Tracks player progression, processes XP events from queues, and updates Discord roles or embeds. |
-| Completions | [`extensions/completions/service.py`](../../extensions/completions/service.py) | Handles run submissions, uses the GenjiPK SDK, and triggers newsfeed updates. |
-| Playtest | [`extensions/playtest/service.py`](../../extensions/playtest/service.py) | Coordinates playtest sessions and DM reminders. |
-| Notifications Queue Worker | [`core/services/queue_worker.py`](../../core/services/queue_worker.py) | Boots RabbitMQ consumers, delegates jobs to registered handlers, and ensures graceful shutdown. |
+| Notifications | [`extensions/notifications/service.py`](https://github.com/bkan0n/genjishimada-bot/blob/main/extensions/notifications/service.py) | Consumes queue events to deliver Discord notifications and manages notification-related views. |
+| Newsfeed | [`extensions/newsfeed/service.py`](https://github.com/bkan0n/genjishimada-bot/blob/main/extensions/newsfeed/service.py) | Generates the community newsfeed, composes embeds, and schedules refresh jobs. |
+| XP | [`extensions/xp/service.py`](https://github.com/bkan0n/genjishimada-bot/blob/main/extensions/xp/service.py) | Tracks player progression, processes XP events from queues, and updates Discord roles or embeds. |
+| Completions | [`extensions/completions/service.py`](https://github.com/bkan0n/genjishimada-bot/blob/main/extensions/completions/service.py) | Handles run submissions, uses the GenjiPK SDK, and triggers newsfeed updates. |
+| Playtest | [`extensions/playtest/service.py`](https://github.com/bkan0n/genjishimada-bot/blob/main/extensions/playtest/service.py) | Coordinates playtest sessions and DM reminders. |
+| Notifications Queue Worker | [`core/services/queue_worker.py`](https://github.com/bkan0n/genjishimada-bot/blob/main/core/services/queue_worker.py) | Boots RabbitMQ consumers, delegates jobs to registered handlers, and ensures graceful shutdown. |
 
 > Extend this table as new services ship to keep a single authoritative map of long-lived processes.
 

@@ -4,7 +4,7 @@ The bot relies on RabbitMQ for asynchronous work. Queue handlers are responsible
 
 ## RabbitMQ integration
 
-- The connection and channel lifecycle lives in [`core/messaging/rabbit.py`](../../core/messaging/rabbit.py).
+- The connection and channel lifecycle lives in [`core/messaging/rabbit.py`](https://github.com/bkan0n/genjishimada-bot/blob/main/core/messaging/rabbit.py).
 - `core.messaging.registry` exposes `register_queue_handler` and `get_registered_handlers` to keep a central list of queues.
 - The queue worker service (see [Services & Extensions](services.md)) consumes `QueueMessage` objects and dispatches them to handlers.
 
