@@ -1,41 +1,29 @@
 # Working on the Docs
 
-This repository uses [MkDocs](https://www.mkdocs.org/) with the Material theme to generate GitHub Pages content. The Markdown lives on the `main` branch and a GitHub Actions workflow publishes the rendered static site to the `gh-pages` branch that GitHub Pages serves. Follow the steps below to propose updates.
+The documentation site is built with [MkDocs](https://www.mkdocs.org/) and the Material theme. Markdown files live in `docs/`, the navigation is defined in `mkdocs.yml`, and a GitHub Actions workflow publishes the rendered site to GitHub Pages.
 
 ## Local preview
 
-1. Install MkDocs and the Material theme:
-   ```bash
-   uv tool install mkdocs
-   uv tool install mkdocs-material
-   ```
-   Or add them to a virtual environment with `pip install mkdocs mkdocs-material`.
-2. Start the live preview:
-   ```bash
-   mkdocs serve
-   ```
+1. Install the project dependencies with `uv sync --group dev` so MkDocs and the Material theme are available in your virtual environment.【F:pyproject.toml†L19-L28】
+2. Start a live preview with `uv run mkdocs serve -a 0.0.0.0:8000` (or use `mkdocs serve` directly inside your environment).
 3. Open <http://127.0.0.1:8000> to browse the docs with hot reload.
 
 ## Branching strategy
 
-1. Create a topic branch from `main`:
-   ```bash
-   git checkout -b docs/update-whatever
-   ```
-2. Commit Markdown and configuration changes under `docs/` and `mkdocs.yml`.
+1. Create a topic branch from `main`.
+2. Commit Markdown updates under `docs/` (and adjust `mkdocs.yml` when the navigation changes).
 3. Push to GitHub and open a pull request targeting `main`.
 
 ## Publishing to GitHub Pages
 
-1. Ensure the **Publish Docs** workflow (`.github/workflows/publish-docs.yml`) is enabled. It runs on every push to `main` and takes care of building the static site with `mkdocs build --strict`.
-2. In repository settings, set GitHub Pages to serve from the `gh-pages` branch (root). The workflow pushes the latest `site/` output there using the built-in `GITHUB_TOKEN`, so no extra secrets are needed.
-3. After the workflow finishes, the site appears at <https://bkan0n.github.io/genjishimada-bot/>. If you need to validate a change before merging, run `mkdocs build --strict` locally to catch broken links.
+1. Ensure the **Publish Docs (MkDocs → Pages)** workflow (`.github/workflows/publish-docs.yml`) is enabled. It runs on every push to `main`, builds the site with `mkdocs build --strict`, and uploads the output as a GitHub Pages artifact.【F:.github/workflows/publish-docs.yml†L1-L45】
+2. GitHub Pages should be configured to serve from the `gh-pages` branch. The deploy job uses `actions/deploy-pages@v4` to publish the artifact from the same workflow run.【F:.github/workflows/publish-docs.yml†L46-L55】
+3. The live site is hosted at <https://bkan0n.github.io/genjishimada-bot/> as configured in `mkdocs.yml`. If you need to validate a change before merging, run `uv run mkdocs build --strict` locally to catch broken links.【F:mkdocs.yml†L1-L19】
 
 ## Writing guidelines
 
-- Keep content narrative and architecture-focused—avoid auto-generated API dumps.
-- Link directly to source files on GitHub (for example, `https://github.com/bkan0n/genjishimada-bot/blob/main/path/to/file.py`) so readers can jump into the code.
-- Add diagrams or tables where they improve clarity; store assets under `docs/assets/`.
-- Document new services, queues, or embeds as soon as they ship so this guide remains current.
+- Keep content narrative and architecture-focused—link to source files when readers need deeper implementation details.
+- Update tables and queue lists whenever new services or jobs are introduced so operational knowledge stays current.
+- Store diagrams or other assets under `docs/assets/` and reference them from the relevant Markdown file.
 
-Questions? Ping the maintainers in the `#bot-dev` Discord channel for review or direction.
+Ping the maintainers in `#bot-dev` on Discord if you need a review or additional context.
