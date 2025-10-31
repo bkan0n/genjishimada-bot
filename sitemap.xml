@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://bkan0n.github.io/genjishimada-bot/</loc>
+         <lastmod>2025-10-31</lastmod>
+    </url>
+    <url>
+         <loc>https://bkan0n.github.io/genjishimada-bot/architecture/core-bot/</loc>
+         <lastmod>2025-10-31</lastmod>
+    </url>
+    <url>
+         <loc>https://bkan0n.github.io/genjishimada-bot/architecture/messaging/</loc>
+         <lastmod>2025-10-31</lastmod>
+    </url>
+    <url>
+         <loc>https://bkan0n.github.io/genjishimada-bot/architecture/services/</loc>
+         <lastmod>2025-10-31</lastmod>
+    </url>
+    <url>
+         <loc>https://bkan0n.github.io/genjishimada-bot/contributing/docs-workflow/</loc>
+         <lastmod>2025-10-31</lastmod>
+    </url>
+    <url>
+         <loc>https://bkan0n.github.io/genjishimada-bot/operations/configuration/</loc>
+         <lastmod>2025-10-31</lastmod>
+    </url>
+    <url>
+         <loc>https://bkan0n.github.io/genjishimada-bot/ux/newsfeed-and-embeds/</loc>
+         <lastmod>2025-10-31</lastmod>
+    </url>
+</urlset>
