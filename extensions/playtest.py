@@ -993,7 +993,6 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                     remove_completions=False,
                     notify_primary_creator_id=primary_creator_id,
                 )
-                await itx.followup.send(content=self.values[0], ephemeral=True)
                 await self.view.fetch_data_and_rebuild(itx.client)
 
             case "Toggle Finalize Button":
