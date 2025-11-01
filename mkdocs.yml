@@ -15,7 +15,7 @@ nav:
   - Contributing:
       - Working on the Docs: contributing/docs-workflow.md
 theme:
-  name: material
+  name: shadcn
   features:
     - navigation.expand
     - navigation.sections
