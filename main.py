@@ -1,4 +1,5 @@
 # ruff: noqa: E402
+import sentry_sdk
 import truststore
 
 truststore.inject_into_ssl()
@@ -10,15 +11,23 @@ from typing import Iterator
 
 import aiohttp
 import discord
-import sentry_sdk
-from dotenv import load_dotenv
 
 import core
 from utilities.errors import on_command_error
 
-load_dotenv(".env")
 SENTRY_DSN = os.getenv("SENTRY_DSN")
 BOT_ENVIRONMENT = os.getenv("BOT_ENVIRONMENT")
+
+sentry_sdk.init(
+    dsn=SENTRY_DSN,
+    send_default_pii=True,
+    traces_sample_rate=1.0,
+    profile_session_sample_rate=1.0,
+    profile_lifecycle="trace",
+    enable_logs=True,
+    enable_tracing=True,
+    environment=BOT_ENVIRONMENT,
+)
 
 
 class RemoveNoise(logging.Filter):
@@ -69,13 +78,6 @@ def setup_logging() -> Iterator[None]:
 
 async def main() -> None:
     """Start the bot instance."""
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        send_default_pii=False,
-        traces_sample_rate=1.0,
-        profile_session_sample_rate=1.0,
-        environment=BOT_ENVIRONMENT,
-    )
     logging.getLogger("discord.gateway").setLevel("WARNING")
     prefix = "?" if BOT_ENVIRONMENT == "production" else "!"
     async with aiohttp.ClientSession() as http_session:
