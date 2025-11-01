@@ -78,6 +78,7 @@ async def main() -> None:
         integrations=[
             AsyncioIntegration(),
         ],
+        debug=True,
     )
 
     logging.getLogger("discord.gateway").setLevel("WARNING")
