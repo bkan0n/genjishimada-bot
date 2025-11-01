@@ -74,6 +74,7 @@ async def main() -> None:
         enable_logs=True,
         traces_sample_rate=1.0,
         profile_session_sample_rate=1.0,
+        profile_lifecycle="trace",
         environment=BOT_ENVIRONMENT,
         integrations=[
             AsyncioIntegration(),
