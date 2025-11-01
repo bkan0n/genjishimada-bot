@@ -46,12 +46,15 @@ class HousekeepingCog(BaseCog):
         ctx: GenjiCtx,
     ) -> None:
         """Test command."""
+        await ctx.send("Start")
+
         sentry_sdk.profiler.start_profiler()
         for i in range(10):
             await slow_function()
             await fast_function()
 
         sentry_sdk.profiler.stop_profiler()
+        await ctx.send("Stop")
 
     @commands.command()
     @commands.guild_only()

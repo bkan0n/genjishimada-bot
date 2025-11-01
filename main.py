@@ -71,9 +71,9 @@ async def main() -> None:
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         send_default_pii=True,
+        enable_logs=True,
         traces_sample_rate=1.0,
         profile_session_sample_rate=1.0,
-        enable_logs=True,
         environment=BOT_ENVIRONMENT,
         integrations=[
             AsyncioIntegration(),
