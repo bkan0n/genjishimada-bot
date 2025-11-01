@@ -287,7 +287,7 @@ class ServerRoleToggleButton(ui.Button):
             await member.add_roles(self.role)
             return True
 
-    async def execute_button(self, itx: GenjiItx) -> None:
+    async def callback(self, itx: GenjiItx) -> None:
         """Add role upon button click."""
         await itx.response.defer(ephemeral=True, thinking=True)
         assert isinstance(itx.user, Member)
@@ -410,6 +410,7 @@ async def setup(bot: Genji) -> None:
     await bot.add_cog(InformationPagesCog(bot))
     bot.add_view(CompletionInformationView())
     bot.add_view(MapInformationView())
+    bot.add_view(ServerRoleSelectView(bot))
 
 
 async def teardown(bot: Genji) -> None:
