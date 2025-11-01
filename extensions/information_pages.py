@@ -4,7 +4,7 @@ import re
 from typing import TYPE_CHECKING
 
 import discord
-from discord import MediaGalleryItem, Member, Role, ui
+from discord import Guild, MediaGalleryItem, Member, Role, ui
 from discord.ext import commands
 
 from utilities.base import BaseCog
@@ -264,19 +264,26 @@ class MapInformationView(ui.LayoutView):
 
 class ServerRoleToggleButton(ui.Button):
     role: Role
+    guild: Guild
 
     def __init__(self, *, bot: Genji, label: str, role_id: int, emoji: str | None = None) -> None:
-        _guild = bot.get_guild(bot.config.guild)
-        assert _guild
-        _role = _guild.get_role(role_id)
-        assert _role
-        self.role = _role
+        self.bot = bot
+        self.role_id = role_id
         super().__init__(
             label=label,
             style=discord.ButtonStyle.gray,
             custom_id=label.lower().replace(" ", "_") + "_server_role_toggle",
             emoji=emoji,
         )
+
+    def _set_guild_and_role(self) -> None:
+        if not self.guild or not self.role:
+            _guild = self.bot.get_guild(self.bot.config.guild)
+            assert _guild
+            self.guild = _guild
+            _role = _guild.get_role(self.role_id)
+            assert _role
+            self.role = _role
 
     async def add_remove_roles(self, member: Member) -> bool:
         """Add or remove roles (toggle-like behavior)."""
@@ -290,6 +297,7 @@ class ServerRoleToggleButton(ui.Button):
     async def callback(self, itx: GenjiItx) -> None:
         """Add role upon button click."""
         await itx.response.defer(ephemeral=True, thinking=True)
+        self._set_guild_and_role()
         assert isinstance(itx.user, Member)
         res = await self.add_remove_roles(itx.user)
         await itx.edit_original_response(content=f"{self.role.name} {'added' if res else 'removed'}")
