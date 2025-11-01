@@ -285,7 +285,7 @@ class RabbitClient:
             guild = self._bot.get_guild(self._bot.config.guild)
             if not guild:
                 raise RuntimeError("Why is there no guild")
-            content = f"### {dlq_name}\n```json\n{msg.body}```"
+            content = f"### {dlq_name}\n<@141372217677053952>\n```json\n{msg.body}```"
             alert_channel = guild.get_channel(self._bot.config.channels.updates.dlq_alerts)
             assert isinstance(alert_channel, TextChannel)
             await alert_channel.send(content)
