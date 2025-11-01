@@ -269,6 +269,8 @@ class ServerRoleToggleButton(ui.Button):
     def __init__(self, *, bot: Genji, label: str, role_id: int, emoji: str | None = None) -> None:
         self.bot = bot
         self.role_id = role_id
+        self.role = None  # pyright: ignore[reportAttributeAccessIssue]
+        self.guild = None  # pyright: ignore[reportAttributeAccessIssue]
         super().__init__(
             label=label,
             style=discord.ButtonStyle.gray,
