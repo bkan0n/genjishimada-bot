@@ -943,12 +943,12 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                 )
 
             case "Approve Submission":
-                await itx.response.defer(ephemeral=True, thinking=False)
+                await itx.response.defer(ephemeral=True, thinking=True)
                 if not self.view.data.playtest:
-                    raise AttributeError("This map data does not have a playtest attached.")
+                    raise UserFacingError("This map data does not have a playtest attached. Contact nebula.")
                 data = await itx.client.api.get_all_votes(self.view.data.playtest.thread_id)
                 if not data.average:
-                    raise AttributeError("There are no votes for this playtest.")
+                    raise UserFacingError("There are no votes for this playtest. Please use force accept instead.")
                 difficulty = convert_raw_difficulty_to_difficulty_all(data.average)
                 await itx.client.playtest.approve_playtest(
                     code=code,
@@ -957,7 +957,7 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                     verifier_id=itx.user.id,
                     primary_creator_id=primary_creator_id,
                 )
-                await itx.response.send_message(self.values[0], ephemeral=True)
+                await itx.edit_original_response(content=self.values[0])
 
             case "Start Process Over":
                 view = ModActionsViewV2("Start Process Over", enable_difficulty=False, enable_reason=True)
@@ -993,7 +993,6 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                     remove_completions=False,
                     notify_primary_creator_id=primary_creator_id,
                 )
-                await itx.response.send_message(self.values[0], ephemeral=True)
                 await self.view.fetch_data_and_rebuild(itx.client)
 
             case "Toggle Finalize Button":

@@ -230,13 +230,12 @@ class SubmitButton(discord.ui.Button["MapSubmissionConfirmationView"]):
         Args:
             itx (GenjiItx): The interaction context.
         """
-        await itx.response.send_message("Please wait while we process this request.", ephemeral=True)
-
         for c in self.view.walk_children():
             if isinstance(c, discord.ui.Button):
                 c.disabled = True
-        assert itx.message
-        await itx.message.edit(view=self.view)
+        await itx.response.edit_message(view=self.view)
+
+        await itx.followup.send("Please wait while we process this request.", ephemeral=True)
 
         screenshot = self.view.custom_banner_attachment
 
@@ -256,23 +255,28 @@ class SubmitButton(discord.ui.Button["MapSubmissionConfirmationView"]):
 
         if not job:
             log.debug(f"Timed out waiting for job. {job_status.id}")
-            await itx.edit_original_response(
+            await itx.followup.send(
                 content=(
                     "There was an unknown error while processing. This has been logged. "
                     "Please do not try again until it has been resolved.\n"
                     f"{self.view.data.code}\n"
-                )
+                ),
+                ephemeral=True,
             )
         elif job.status == "succeeded":
             log.debug(f"Job completed successfully! {job_status.id}")
-            await itx.edit_original_response(content="Map submission was successful.\n")
+            await itx.followup.send(
+                content="Map submission was successful.\n",
+                ephemeral=True,
+            )
         else:
             log.debug(f"Job ({job_status.id}) ended with status: {job.status}")
-            await itx.edit_original_response(
+            await itx.followup.send(
                 content=(
                     "There was an unknown error while processing. This has been logged. "
                     "Please do not try again until it has been resolved.\n"
-                )
+                ),
+                ephemeral=True,
             )
 
 

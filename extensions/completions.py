@@ -963,7 +963,17 @@ class CompletionsUserPaginator(PaginatorView[CompletionUserFormattable]):
 
 
 class SetSuspiciousModal(ui.Modal):
-    flag_type = ui.TextInput(label="Flag Type")
+    flag_type = discord.ui.Label(
+        text="Flag Type",
+        description="Select the type of suspicious flag.",
+        component=discord.ui.Select(
+            placeholder="Choose a flag.",
+            options=[
+                discord.SelectOption(label="Cheating"),
+                discord.SelectOption(label="Scripting"),
+            ],
+        ),
+    )
     context = ui.TextInput(label="Context/Reason", style=TextStyle.long)
 
     def __init__(self, *, message_id: int | None = None, verification_id: int | None = None) -> None:
@@ -996,7 +1006,7 @@ class SetSuspiciousModal(ui.Modal):
             itx: The interaction context associated with the modal.
         """
         await itx.response.defer(ephemeral=True, thinking=True)
-        if self.flag_type.value not in get_args(SuspiciousFlag):
+        if self.flag_type.component.values[0] not in get_args(SuspiciousFlag):
             await itx.edit_original_response(
                 content=f"Flag type must be one of `{', '.join(get_args(SuspiciousFlag))}`",
             )
@@ -1004,7 +1014,7 @@ class SetSuspiciousModal(ui.Modal):
         data = SuspiciousCompletionWriteDTO(
             message_id=self.message_id,
             verification_id=self.verification_id,
-            flag_type=self.flag_type.value,  # pyright: ignore[reportArgumentType]
+            flag_type=self.flag_type.component.values[0],  # pyright: ignore[reportArgumentType]
             flagged_by=itx.user.id,
             context=self.context.value,
         )
