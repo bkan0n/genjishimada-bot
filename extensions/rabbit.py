@@ -220,7 +220,7 @@ class RabbitClient:
             try:
                 processed = await self._process_all_dlqs_once()
                 if processed:
-                    log.info(f"[DLQ] processed {processed} message(s) across all DLQs")
+                    log.debug(f"[DLQ] processed {processed} message(s) across all DLQs")
             except Exception:
                 log.exception("[DLQ] Unhandled error during DLQ processing loop")
             await asyncio.sleep(DLQ_PROCESS_INTERVAL)
