@@ -758,7 +758,7 @@ class NewsfeedService:
                     view = cog.playtest_views[_map.playtest.thread_id]
                     await view.fetch_data_and_rebuild(self._bot)
                     if not thread:
-                        log.info(f"Was not able to find thread for playtest view. {_map.playtest.thread_id}")
+                        log.warning(f"Was not able to find thread for playtest view. {_map.playtest.thread_id}")
                         return
                     m = thread.get_partial_message(_map.playtest.thread_id)
                     await m.edit(view=view)

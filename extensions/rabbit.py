@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Awaitable, Callable, TypeAlias, TypeVar
 from aio_pika import Channel, DeliveryMode, Message, connect_robust
 from aio_pika.abc import AbstractIncomingMessage
 from aio_pika.pool import Pool
+from discord import TextChannel
 
 from extensions._queue_registry import (
     _registered_queue_handlers,
@@ -219,7 +220,7 @@ class RabbitClient:
             try:
                 processed = await self._process_all_dlqs_once()
                 if processed:
-                    log.info(f"[DLQ] processed {processed} message(s) across all DLQs")
+                    log.debug(f"[DLQ] processed {processed} message(s) across all DLQs")
             except Exception:
                 log.exception("[DLQ] Unhandled error during DLQ processing loop")
             await asyncio.sleep(DLQ_PROCESS_INTERVAL)
@@ -284,8 +285,10 @@ class RabbitClient:
             guild = self._bot.get_guild(self._bot.config.guild)
             if not guild:
                 raise RuntimeError("Why is there no guild")
-            content = f"### {dlq_name}\n```json\n{msg.body}```"
-            await guild.get_channel(1432862783644368968).send(content)
+            content = f"### {dlq_name}\n<@141372217677053952>\n```json\n{msg.body}```"
+            alert_channel = guild.get_channel(self._bot.config.channels.updates.dlq_alerts)
+            assert isinstance(alert_channel, TextChannel)
+            await alert_channel.send(content)
 
             # Republish a *copy* with the header set, then ack the original.
             new_headers = {**headers, DLQ_HEADER_KEY: True, "dlq_notified_at": int(time.time())}

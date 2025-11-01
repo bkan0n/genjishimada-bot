@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 from logging import getLogger
 from typing import TYPE_CHECKING, Literal
 
 import discord
+import sentry_sdk
 from discord import TextChannel, app_commands, ui
 from discord.ext import commands
 
@@ -15,6 +17,16 @@ if TYPE_CHECKING:
     from utilities._types import GenjiCtx, GenjiItx
 
 log = getLogger(__name__)
+
+
+async def slow_function():
+    await asyncio.sleep(0.1)
+    return "done"
+
+
+async def fast_function():
+    await asyncio.sleep(0.05)
+    return "done"
 
 
 class HousekeepingCog(BaseCog):
@@ -34,6 +46,15 @@ class HousekeepingCog(BaseCog):
         ctx: GenjiCtx,
     ) -> None:
         """Test command."""
+        await ctx.send("Start")
+
+        sentry_sdk.profiler.start_profiler()
+        for i in range(10):
+            await slow_function()
+            await fast_function()
+
+        sentry_sdk.profiler.stop_profiler()
+        await ctx.send("Stop")
 
     @commands.command()
     @commands.guild_only()

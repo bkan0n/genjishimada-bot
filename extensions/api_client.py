@@ -179,7 +179,7 @@ class APIClient:
                         interval = retry_after
             except Exception:
                 self._is_available = False
-                log.info("Genji Shimada APIClient Heartbeat blocked.")
+                log.warning("Genji Shimada APIClient Heartbeat blocked.")
             await asyncio.sleep(interval)
 
     async def _check_availability(self) -> int | None:

@@ -83,6 +83,8 @@ class NotificationService:
         """Send a message in the channel that pings the user, or sends message without a ping."""
         success = await self.notify_channel(channel, user_id, notification, message)
         if not success:
+            if not channel:
+                return
             await channel.send(message, **kwargs)
 
 

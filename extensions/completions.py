@@ -695,7 +695,7 @@ class CompletionsManager(BaseService):
                 description=f"{nickname} received the **{map_name} {medal}** Map Mastery badge!",
             )
             embed.set_thumbnail(url=f"https://genji.pk/{m.icon_url}")
-            xp_channel = self.guild.get_channel(1324496532447166505)
+            xp_channel = self.guild.get_channel(self.bot.config.channels.updates.xp)
             assert isinstance(xp_channel, TextChannel)
             await self.bot.notifications.notify_channel_default_to_no_ping(
                 xp_channel,
