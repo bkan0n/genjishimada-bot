@@ -4,7 +4,7 @@ import re
 from typing import TYPE_CHECKING
 
 import discord
-from discord import MediaGalleryItem, ui
+from discord import MediaGalleryItem, Member, Role, ui
 from discord.ext import commands
 
 from utilities.base import BaseCog
@@ -262,6 +262,126 @@ class MapInformationView(ui.LayoutView):
         self.add_item(container)
 
 
+class ServerRoleToggleButton(ui.Button):
+    role: Role
+
+    def __init__(self, *, bot: Genji, label: str, role_id: int, emoji: str | None = None) -> None:
+        _guild = bot.get_guild(bot.config.guild)
+        assert _guild
+        _role = _guild.get_role(role_id)
+        assert _role
+        self.role = _role
+        super().__init__(
+            label=label,
+            style=discord.ButtonStyle.gray,
+            custom_id=label.lower().replace(" ", "_") + "_server_role_toggle",
+            emoji=emoji,
+        )
+
+    async def add_remove_roles(self, member: Member) -> bool:
+        """Add or remove roles (toggle-like behavior)."""
+        if self.role in member.roles:
+            await member.remove_roles(self.role)
+            return False
+        else:
+            await member.add_roles(self.role)
+            return True
+
+    async def execute_button(self, itx: GenjiItx) -> None:
+        """Add role upon button click."""
+        await itx.response.defer(ephemeral=True, thinking=True)
+        assert isinstance(itx.user, Member)
+        res = await self.add_remove_roles(itx.user)
+        await itx.edit_original_response(content=f"{self.role.name} {'added' if res else 'removed'}")
+
+
+class ServerRoleSelectView(ui.LayoutView):
+    def __init__(self, bot: Genji) -> None:
+        """Initialize the MapInformationView."""
+        self.bot = bot
+        super().__init__(timeout=None)
+        self.rebuild_components()
+
+    def rebuild_components(self) -> None:
+        """Rebuild the necessary components."""
+        self.clear_items()
+        container = ui.Container(
+            ui.TextDisplay("# Role Customization\n-# You can also adjust these roles here <id:customize>"),
+            ui.Separator(),
+            ui.TextDisplay("### Announcement Pings"),
+            ui.ActionRow(
+                ServerRoleToggleButton(
+                    bot=self.bot,
+                    label="General Announcements",
+                    role_id=self.bot.config.roles.mentionable.general_announcements,
+                ),
+                ServerRoleToggleButton(
+                    bot=self.bot,
+                    label="Framework Patch Notes",
+                    role_id=self.bot.config.roles.mentionable.framework_patch_notes,
+                ),
+                ServerRoleToggleButton(
+                    bot=self.bot,
+                    label="Website/Bot Patch Notes",
+                    role_id=self.bot.config.roles.mentionable.website_patch_notes,
+                ),
+            ),
+            ui.Separator(),
+            ui.TextDisplay("### Regions"),
+            ui.ActionRow(
+                ServerRoleToggleButton(
+                    bot=self.bot,
+                    label="North America",
+                    role_id=self.bot.config.roles.location.north_america,
+                ),
+                ServerRoleToggleButton(
+                    bot=self.bot,
+                    label="Europe",
+                    role_id=self.bot.config.roles.location.europe,
+                ),
+                ServerRoleToggleButton(
+                    bot=self.bot,
+                    label="Asia",
+                    role_id=self.bot.config.roles.location.asia,
+                ),
+            ),
+            ui.ActionRow(
+                ServerRoleToggleButton(
+                    bot=self.bot,
+                    label="Oceana",
+                    role_id=self.bot.config.roles.location.oceana,
+                ),
+                ServerRoleToggleButton(
+                    bot=self.bot,
+                    label="South America",
+                    role_id=self.bot.config.roles.location.south_america,
+                ),
+                ServerRoleToggleButton(
+                    bot=self.bot,
+                    label="Africa",
+                    role_id=self.bot.config.roles.location.africa,
+                ),
+            ),
+            ui.Separator(),
+            ui.TextDisplay("### Platform"),
+            ui.ActionRow(
+                ServerRoleToggleButton(
+                    bot=self.bot,
+                    label="Console",
+                    role_id=self.bot.config.roles.platform.console,
+                    emoji="🎮",
+                ),
+                ServerRoleToggleButton(
+                    bot=self.bot,
+                    label="PC",
+                    role_id=self.bot.config.roles.platform.pc,
+                    emoji="⌨️",
+                ),
+            ),
+        )
+        self.add_item(container)
+
+
 class InformationPagesCog(BaseCog):
     @commands.command()
     @commands.is_owner()
@@ -276,6 +396,13 @@ class InformationPagesCog(BaseCog):
         """Add the map submission info view to a message."""
         await ctx.message.delete(delay=1)
         await ctx.send(view=MapInformationView())
+
+    @commands.command()
+    @commands.is_owner()
+    async def roleselect(self, ctx: GenjiCtx) -> None:
+        """Add the map submission info view to a message."""
+        await ctx.message.delete(delay=1)
+        await ctx.send(view=ServerRoleSelectView(ctx.bot))
 
 
 async def setup(bot: Genji) -> None:
