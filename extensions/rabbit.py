@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Awaitable, Callable, TypeAlias, TypeVar
 from aio_pika import Channel, DeliveryMode, Message, connect_robust
 from aio_pika.abc import AbstractIncomingMessage
 from aio_pika.pool import Pool
+from discord import TextChannel
 
 from extensions._queue_registry import (
     _registered_queue_handlers,
@@ -285,7 +286,9 @@ class RabbitClient:
             if not guild:
                 raise RuntimeError("Why is there no guild")
             content = f"### {dlq_name}\n```json\n{msg.body}```"
-            await guild.get_channel(1432862783644368968).send(content)
+            alert_channel = guild.get_channel(self._bot.config.channels.updates.dlq_alerts)
+            assert isinstance(alert_channel, TextChannel)
+            await alert_channel.send(content)
 
             # Republish a *copy* with the header set, then ack the original.
             new_headers = {**headers, DLQ_HEADER_KEY: True, "dlq_notified_at": int(time.time())}

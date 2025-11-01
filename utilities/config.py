@@ -56,6 +56,7 @@ class Updates(Base):
     xp: int
     editor_patch_notes: int
     website_patch_notes: int
+    dlq_alerts: int
 
 
 class Information(Base):
