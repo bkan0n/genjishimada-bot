@@ -7,14 +7,14 @@ from discord.ext import commands
 
 import extensions
 import utilities.config
-from extensions.api_client import APIClient
-from extensions.completions import CompletionsManager
+from extensions.api_service import APIService
+from extensions.completions import CompletionsService
 from extensions.newsfeed import NewsfeedService
 from extensions.notifications import NotificationService
-from extensions.playtest import PlaytestManager
-from extensions.rabbit import RabbitClient
-from extensions.xp import XPManager
-from utilities.thumbnails import VideoThumbnailService
+from extensions.playtest import PlaytestService
+from extensions.rabbit import RabbitService
+from extensions.video_thumbnail import VideoThumbnailService
+from extensions.xp import XPService
 
 __all__ = ("Genji",)
 
@@ -35,13 +35,13 @@ intents = discord.Intents(
 
 class Genji(commands.Bot):
     _notification_service: NotificationService
-    _rabbit_client: RabbitClient
-    _playtest_manager: PlaytestManager
+    _rabbit_client: RabbitService
+    _playtest_manager: PlaytestService
     _newsfeed_client: NewsfeedService
-    _api_client: APIClient
-    _completions_manager: CompletionsManager
-    _xp_manager: XPManager
-    thumbnail_service: VideoThumbnailService
+    _api_service: APIService
+    _completions_manager: CompletionsService
+    _xp_manager: XPService
+    _thumbnail_service: VideoThumbnailService
 
     def __init__(self, *, prefix: str, session: aiohttp.ClientSession) -> None:
         """Initialize Bot instance.
@@ -57,7 +57,6 @@ class Genji(commands.Bot):
             description="Genji Shimada, a Discord bot for the Genji Parkour community.",
         )
         self.session = session
-        self.thumbnail_service = VideoThumbnailService(session, fallback="https://cdn.genji.pk/assets/no-thumbnail.jpg")
         config = "prod" if os.getenv("BOT_ENVIRONMENT") == "production" else "dev"
         with open(f"configs/{config}.toml", "rb") as f:
             self.config = utilities.config.decode(f.read())
@@ -86,25 +85,25 @@ class Genji(commands.Bot):
         self._notification_service = service
 
     @property
-    def rabbit(self) -> RabbitClient:
+    def rabbit(self) -> RabbitService:
         """Return the notification service."""
         if self._rabbit_client is None:
             raise AttributeError("Notification service not initialized.")
         return self._rabbit_client
 
     @rabbit.setter
-    def rabbit(self, service: RabbitClient) -> None:
+    def rabbit(self, service: RabbitService) -> None:
         self._rabbit_client = service
 
     @property
-    def playtest(self) -> PlaytestManager:
+    def playtest(self) -> PlaytestService:
         """Return the playtest service."""
         if self._playtest_manager is None:
             raise AttributeError("Playtest service not initialized.")
         return self._playtest_manager
 
     @playtest.setter
-    def playtest(self, service: PlaytestManager) -> None:
+    def playtest(self, service: PlaytestService) -> None:
         self._playtest_manager = service
 
     @property
@@ -119,28 +118,37 @@ class Genji(commands.Bot):
         self._newsfeed_client = service
 
     @property
-    def api(self) -> APIClient:
+    def api(self) -> APIService:
         """Return the API client."""
-        return self._api_client
+        return self._api_service
 
     @api.setter
-    def api(self, service: APIClient) -> None:
-        self._api_client = service
+    def api(self, service: APIService) -> None:
+        self._api_service = service
 
     @property
-    def completions(self) -> CompletionsManager:
-        """Return the CompletionsManager service."""
+    def completions(self) -> CompletionsService:
+        """Return the CompletionsService service."""
         return self._completions_manager
 
     @completions.setter
-    def completions(self, service: CompletionsManager) -> None:
+    def completions(self, service: CompletionsService) -> None:
         self._completions_manager = service
 
     @property
-    def xp(self) -> XPManager:
-        """Return the CompletionsManager service."""
+    def xp(self) -> XPService:
+        """Return the CompletionsService service."""
         return self._xp_manager
 
     @xp.setter
-    def xp(self, service: XPManager) -> None:
+    def xp(self, service: XPService) -> None:
         self._xp_manager = service
+
+    @property
+    def thumbnail_service(self) -> VideoThumbnailService:
+        """Return the VideoThumbnailService."""
+        return self._thumbnail_service
+
+    @thumbnail_service.setter
+    def thumbnail_service(self, service: VideoThumbnailService) -> None:
+        self._thumbnail_service = service

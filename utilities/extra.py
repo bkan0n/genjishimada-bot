@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from genjipk_sdk.models import JobStatus
 
-    from extensions.api_client import APIClient
+    from extensions.api_service import APIService
 
 
 def time_convert(string: str) -> float:
@@ -27,11 +27,11 @@ def time_convert(string: str) -> float:
     return round(res, 2)
 
 
-async def poll_job_until_complete(api: APIClient, job_id: uuid.UUID) -> JobStatus | None:
+async def poll_job_until_complete(api: APIService, job_id: uuid.UUID) -> JobStatus | None:
     """Poll a job from the API every 100 ms with exponential backoff up to 20 seconds.
 
     Args:
-        api: APIClient.
+        api: APIService.
         job_id (uuid.UUID): The ID of the job to monitor.
 
     Returns:

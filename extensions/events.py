@@ -145,7 +145,8 @@ class EventsCog(BaseCog):
         await self.bot.api.log_analytics(itx.command.qualified_name, itx.user.id, itx.created_at, _namespace)
 
     @commands.Cog.listener()
-    async def on_app_command_completion(self, itx: GenjiItx, command: Command | ContextMenu): ...
+    async def on_app_command_completion(self, itx: GenjiItx, command: Command | ContextMenu) -> None:
+        """Process event when app command completes."""
 
 
 async def setup(bot: Genji) -> None:

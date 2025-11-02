@@ -23,7 +23,7 @@ log = getLogger(__name__)
 
 
 # TODO: Make alerts into cv2, pretty
-class XPManager(BaseService):
+class XPService(BaseService):
     xp_channel: TextChannel
 
     async def _resolve_channels(self) -> None:
@@ -241,5 +241,5 @@ async def setup(bot: core.Genji) -> None:
     Args:
         bot (core.Genji): The running bot instance.
     """
-    bot.xp = XPManager(bot)
+    bot.xp = XPService(bot)
     await bot.add_cog(XPCog(bot))

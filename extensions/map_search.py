@@ -13,7 +13,7 @@ from genjipk_sdk.utilities._types import (
     Restrictions,
 )
 
-from extensions.api_client import CompletionFilter, MedalFilter, PlaytestFilter
+from extensions.api_service import CompletionFilter, MedalFilter, PlaytestFilter
 from utilities import transformers
 from utilities.base import BaseCog
 from utilities.emojis import generate_all_star_rating_strings

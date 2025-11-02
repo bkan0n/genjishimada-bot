@@ -15,13 +15,13 @@ if typing.TYPE_CHECKING:
 async def setup(bot: core.Genji) -> None:
     """Add the ticketing Cog to the Discord bot.
 
-    Registers the TicketSystem cog so ticket creation and moderation utilities
+    Registers the ModmailCog cog so ticket creation and moderation utilities
     are available.
 
     Args:
         bot: The Genji Discord bot instance.
     """
-    await bot.add_cog(TicketSystem(bot))
+    await bot.add_cog(ModmailCog(bot))
 
 
 class TicketStart(discord.ui.View):
@@ -169,7 +169,7 @@ def ticket_thread_check():  # noqa: ANN201
     return commands.check(predicate)
 
 
-class TicketSystem(BaseCog):
+class ModmailCog(BaseCog):
     async def cog_load(self) -> None:
         """Register persistent views when the cog is loaded.
 
