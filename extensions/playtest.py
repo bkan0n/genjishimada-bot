@@ -43,7 +43,7 @@ from extensions._queue_registry import register_queue_handler
 from utilities import BaseCog, BaseService
 from utilities.base import ConfirmationView
 from utilities.errors import UserFacingError, on_command_error
-from utilities.formatter import Formatter
+from utilities.formatter import FilteredFormatter
 from utilities.maps import MapModel
 
 if TYPE_CHECKING:
@@ -1140,7 +1140,7 @@ class MapFinalizationViewV2(discord.ui.LayoutView):
                 accessory=discord.ui.Button(style=discord.ButtonStyle.link, url=self.url, label="Go to playtest"),
             ),
             discord.ui.Separator(),
-            discord.ui.TextDisplay(Formatter(self.data, primary_character="", secondary_character="").format()),
+            discord.ui.TextDisplay(FilteredFormatter(self.data).format()),
             discord.ui.MediaGallery(discord.MediaGalleryItem(media=self.data.map_banner)),
             discord.ui.Section(
                 discord.ui.TextDisplay(
@@ -1230,7 +1230,7 @@ class PlaytestComponentsV2View(discord.ui.LayoutView):
     def rebuild_components(self) -> None:
         """Rebuild all components for the playtest view (mods/creators/testers)."""
         self.clear_items()
-        formatter = Formatter(self.data, primary_character="", secondary_character="")
+        formatter = FilteredFormatter(self.data)
         assert self.data.map_banner
         data_section = discord.ui.Container(
             PlaytestLayoutViewGallery(self.data.map_banner),
