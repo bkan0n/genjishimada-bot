@@ -692,7 +692,7 @@ class NewsfeedService:
                 raise ValueError(f"{cls.__name__} missing payload_cls")
             self._registry_by_cls[payload_cls] = builder
 
-    async def publish_event(
+    async def _publish_event(
         self,
         event: NewsfeedEvent,
         *,
@@ -726,7 +726,7 @@ class NewsfeedService:
         view.stop()
 
     @register_queue_handler("api.newsfeed.create")
-    async def _on_newsfeed_created(self, message: AbstractIncomingMessage) -> None:
+    async def _process_newsfeed_create(self, message: AbstractIncomingMessage) -> None:
         """Consume and handle a message indicating a new Newsfeed event was created.
 
         Args:
@@ -753,7 +753,7 @@ class NewsfeedService:
                     guild = self._bot.get_guild(self._bot.config.guild)
                     assert guild and _map.playtest
                     thread = guild.get_thread(_map.playtest.thread_id)
-                    await self.publish_event(event, channel=thread)
+                    await self._publish_event(event, channel=thread)
                     cog: "PlaytestCog" = self._bot.cogs["PlaytestCog"]  # pyright: ignore[reportAssignmentType]
                     view = cog.playtest_views[_map.playtest.thread_id]
                     await view.fetch_data_and_rebuild(self._bot)
@@ -763,7 +763,7 @@ class NewsfeedService:
                     m = thread.get_partial_message(_map.playtest.thread_id)
                     await m.edit(view=view)
                     return
-            await self.publish_event(event)
+            await self._publish_event(event)
 
         except Exception:
             log.exception("Failed to process newsfeed create message.")

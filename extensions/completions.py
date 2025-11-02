@@ -515,12 +515,12 @@ class CompletionsService(BaseService):
                 return
 
             log.debug(f"[x] [RabbitMQ] Processing message: {struct.message_id}")
-            await self.handle_upvote_forwarding(struct)
+            await self._handle_upvote_forwarding(struct)
 
         except Exception as e:
             raise e
 
-    async def handle_upvote_forwarding(self, data: UpvoteUpdateDTO) -> None:
+    async def _handle_upvote_forwarding(self, data: UpvoteUpdateDTO) -> None:
         """Forward a submission message to the upvote channel.
 
         Retrieves the partial message by ID from the submission channel and
@@ -557,7 +557,7 @@ class CompletionsService(BaseService):
                 return
 
             log.debug(f"[x] [RabbitMQ] Processing message: {struct.completion_id}")
-            await self.handle_verification_queue_message(struct.completion_id)
+            await self._handle_verification_queue_message(struct.completion_id)
 
         except Exception as e:
             raise e
@@ -576,12 +576,12 @@ class CompletionsService(BaseService):
                 return
 
             log.debug(f"[x] [RabbitMQ] Processing message: {struct.completion_id}")
-            await self.handle_verification_status_change(struct)
+            await self._handle_verification_status_change(struct)
 
         except Exception as e:
             raise e
 
-    async def handle_verification_queue_message(self, record_id: int) -> None:
+    async def _handle_verification_queue_message(self, record_id: int) -> None:
         """Create a verification message in the queue.
 
         Args:
@@ -611,7 +611,7 @@ class CompletionsService(BaseService):
         event = NewsfeedEvent(id=None, timestamp=discord.utils.utcnow(), payload=payload, event_type="record")
         await self.bot.api.create_newsfeed(event)
 
-    async def handle_verification_status_change(self, data: MessageQueueVerificationChange) -> None:
+    async def _handle_verification_status_change(self, data: MessageQueueVerificationChange) -> None:
         """Handle the change of verification status for a particular record_id.
 
         Args:
@@ -659,7 +659,7 @@ class CompletionsService(BaseService):
                 await self.bot.xp.grant_user_xp_of_type(completion_data.user_id, "Record")
                 await self._emit_newsfeed_for_record(completion_data)
 
-            await self.process_map_mastery(completion_data.user_id)
+            await self._process_map_mastery(completion_data.user_id)
 
         elif should_notify and member:
             completion_data = await self.bot.api.get_completion_submission(data.completion_id)
@@ -676,7 +676,7 @@ class CompletionsService(BaseService):
         if stoppable_view:
             stoppable_view.stop()
 
-    async def process_map_mastery(self, user_id: int) -> None:
+    async def _process_map_mastery(self, user_id: int) -> None:
         """Process and update a user's map mastery progress.
 
         Fetches mastery data for the user, updates records, and posts a
@@ -716,7 +716,7 @@ class CompletionsService(BaseService):
                 embed=embed,
             )
 
-    def determine_skill_rank_roles_to_give(
+    def _determine_skill_rank_roles_to_give(
         self,
         data: list[RankDetailReadDTO],
     ) -> tuple[list[Role], list[Role]]:
@@ -754,7 +754,7 @@ class CompletionsService(BaseService):
 
         return roles_to_grant, roles_to_remove
 
-    async def grant_skill_rank_roles(
+    async def _grant_skill_rank_roles(
         self,
         member: Member,
         roles_to_grant: list[Role],
@@ -809,10 +809,10 @@ class CompletionsService(BaseService):
     async def auto_skill_role(self, member: Member) -> None:
         """Perform automatic skill roles process."""
         data = await self.bot.api.get_user_rank_data(member.id)
-        add, remove = self.determine_skill_rank_roles_to_give(data)
-        await self.grant_skill_rank_roles(member, add, remove)
+        add, remove = self._determine_skill_rank_roles_to_give(data)
+        await self._grant_skill_rank_roles(member, add, remove)
 
-    async def update_affected_users(self, code: OverwatchCode) -> None:
+    async def _update_affected_users(self, code: OverwatchCode) -> None:
         """Update roles for users affected by map edits or changes."""
         ids = await self.bot.api.get_affected_users(code)
 

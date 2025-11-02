@@ -89,7 +89,7 @@ class PlaytestService(BaseService):
         assert isinstance(verification_channel, discord.TextChannel)
         self.verification_channel = verification_channel
 
-    def get_forum_tag(self, value: str) -> discord.ForumTag:
+    def _get_forum_tag(self, value: str) -> discord.ForumTag:
         """Retrieve a forum tag by its name.
 
         Args:
@@ -107,7 +107,7 @@ class PlaytestService(BaseService):
                 return tag
         raise ValueError(f"Unknown tag: {value}")
 
-    async def add_playtest(self, partial_data: MapReadPartialDTO, playtest_id: int) -> None:
+    async def _add_playtest(self, partial_data: MapReadPartialDTO, playtest_id: int) -> None:
         """Create a new playtest forum thread and populate it with metadata.
 
         This method:
@@ -123,8 +123,8 @@ class PlaytestService(BaseService):
         """
         await self._ensure_guild_and_channel()
 
-        tag = self.get_forum_tag(convert_extended_difficulty_to_top_level(partial_data.difficulty))
-        open_tag = self.get_forum_tag("Open")
+        tag = self._get_forum_tag(convert_extended_difficulty_to_top_level(partial_data.difficulty))
+        open_tag = self._get_forum_tag("Open")
         thread, message = await self.playtest_channel.create_thread(
             name=partial_data.thread_name,
             content="Loading...",
@@ -175,7 +175,7 @@ class PlaytestService(BaseService):
             log.debug(f"[x] [RabbitMQ] Processing message: {struct.code}")
 
             model = await self.bot.api.get_partial_map(struct.code)
-            await self.add_playtest(model, struct.playtest_id)
+            await self._add_playtest(model, struct.playtest_id)
         except Exception as e:
             raise e
 
@@ -256,8 +256,8 @@ class PlaytestService(BaseService):
         log.debug("Edit thread tags close starting")
 
         thread = await self._fetch_thread(thread_id)
-        open_tag = self.get_forum_tag("Open")
-        final_tag = self.get_forum_tag("Cancelled" if cancelled else "Complete")
+        open_tag = self._get_forum_tag("Open")
+        final_tag = self._get_forum_tag("Cancelled" if cancelled else "Complete")
         applied_tags = set(thread.applied_tags) | {final_tag}
         applied_tags.discard(open_tag)
         await thread.edit(archived=True, locked=True, applied_tags=list(applied_tags))
@@ -294,7 +294,7 @@ class PlaytestService(BaseService):
         for vote in votes.votes:
             await self.bot.xp.grant_user_xp_of_type(vote.user_id, "Playtest")
 
-    async def approve_playtest(
+    async def _approve_playtest(
         self,
         *,
         code: str,
@@ -328,7 +328,7 @@ class PlaytestService(BaseService):
         await self._edit_thread_tags_close(thread_id=thread_id, cancelled=False)
         await self._delete_verification_message_if_any(thread_id=thread_id)
 
-    async def force_accept_playtest(
+    async def _force_accept_playtest(
         self,
         *,
         code: str,
@@ -360,7 +360,7 @@ class PlaytestService(BaseService):
         await self._edit_thread_tags_close(thread_id=thread_id, cancelled=False)
         await self._delete_verification_message_if_any(thread_id=thread_id)
 
-    async def force_deny_playtest(
+    async def _force_deny_playtest(
         self,
         *,
         code: str,
@@ -387,7 +387,7 @@ class PlaytestService(BaseService):
         await self._edit_thread_tags_close(thread_id=thread_id, cancelled=True)
         await self._delete_verification_message_if_any(thread_id=thread_id)
 
-    async def reset_playtest_votes_and_completions(  # noqa: PLR0913
+    async def _reset_playtest_votes_and_completions(  # noqa: PLR0913
         self,
         *,
         code: str,
@@ -486,7 +486,7 @@ class PlaytestService(BaseService):
                 "Please ensure your map is ready to be verified."
             )
 
-    async def apply_vote_discord_side(self, *, thread_id: int, voter_id: int, difficulty_value: float) -> None:
+    async def _apply_vote_discord_side(self, *, thread_id: int, voter_id: int, difficulty_value: float) -> None:
         """Announce a cast vote and refresh the UI/plot.
 
         Args:
@@ -499,7 +499,7 @@ class PlaytestService(BaseService):
         await self._rebuild_view_and_plot(thread_id=thread_id)
         await self._announce_vote_in_thread(thread_id=thread_id, voter_id=voter_id, label=label)
 
-    async def remove_vote_discord_side(self, *, thread_id: int, voter_id: int) -> None:
+    async def _remove_vote_discord_side(self, *, thread_id: int, voter_id: int) -> None:
         """Announce a removed vote and refresh the UI/plot.
 
         Args:
@@ -510,7 +510,7 @@ class PlaytestService(BaseService):
         await self._announce_vote_in_thread(thread_id=thread_id, voter_id=voter_id, label=None)
 
     @register_queue_handler("api.playtest.vote.cast")
-    async def _mq_vote_cast(self, message: AbstractIncomingMessage) -> None:
+    async def _process_vote_cast(self, message: AbstractIncomingMessage) -> None:
         """Consume 'vote cast' events and apply thread-side updates.
 
         Args:
@@ -519,14 +519,14 @@ class PlaytestService(BaseService):
         if message.headers.get("x-pytest-enabled", False):
             return
         s = msgspec.json.decode(message.body, type=PlaytestVoteCastMQ)
-        await self.apply_vote_discord_side(
+        await self._apply_vote_discord_side(
             thread_id=s.thread_id,
             voter_id=s.voter_id,
             difficulty_value=s.difficulty_value,
         )
 
     @register_queue_handler("api.playtest.vote.remove")
-    async def _mq_vote_remove(self, message: AbstractIncomingMessage) -> None:
+    async def _process_vote_remove(self, message: AbstractIncomingMessage) -> None:
         """Consume 'vote removed' events and apply thread-side updates.
 
         Args:
@@ -535,13 +535,13 @@ class PlaytestService(BaseService):
         if message.headers.get("x-pytest-enabled", False):
             return
         s = msgspec.json.decode(message.body, type=PlaytestVoteRemovedMQ)
-        await self.remove_vote_discord_side(
+        await self._remove_vote_discord_side(
             thread_id=s.thread_id,
             voter_id=s.voter_id,
         )
 
     @register_queue_handler("api.playtest.approve")
-    async def _mq_approve(self, message: AbstractIncomingMessage) -> None:
+    async def _process_approve_playtest(self, message: AbstractIncomingMessage) -> None:
         """Consume 'approve' playtest events and perform side effects.
 
         Args:
@@ -551,7 +551,7 @@ class PlaytestService(BaseService):
             return
         s = msgspec.json.decode(message.body, type=PlaytestApproveMQ)
 
-        await self.approve_playtest(
+        await self._approve_playtest(
             code=s.code,
             thread_id=s.thread_id,
             verifier_id=s.verifier_id,
@@ -560,7 +560,7 @@ class PlaytestService(BaseService):
         )
 
     @register_queue_handler("api.playtest.force_accept")
-    async def _mq_force_accept(self, message: AbstractIncomingMessage) -> None:
+    async def _process_force_accept_playtest(self, message: AbstractIncomingMessage) -> None:
         """Consume 'force accept' playtest events and perform side effects.
 
         Args:
@@ -572,7 +572,7 @@ class PlaytestService(BaseService):
         log.debug(f"{s=}")
         playtest_data = await self.bot.api.get_playtest(s.thread_id)
         map_data = await self.bot.api.get_map(code=playtest_data.code)
-        await self.force_accept_playtest(
+        await self._force_accept_playtest(
             code=map_data.code,
             thread_id=s.thread_id,
             difficulty=s.difficulty,
@@ -581,7 +581,7 @@ class PlaytestService(BaseService):
         )
 
     @register_queue_handler("api.playtest.force_deny")
-    async def _mq_force_deny(self, message: AbstractIncomingMessage) -> None:
+    async def _process_force_deny_playtest(self, message: AbstractIncomingMessage) -> None:
         """Consume 'force deny' playtest events and perform side effects.
 
         Args:
@@ -592,7 +592,7 @@ class PlaytestService(BaseService):
         s = msgspec.json.decode(message.body, type=PlaytestForceDenyMQ)
         playtest_data = await self.bot.api.get_playtest(s.thread_id)
         map_data = await self.bot.api.get_map(code=playtest_data.code)
-        await self.force_deny_playtest(
+        await self._force_deny_playtest(
             code=map_data.code,
             thread_id=s.thread_id,
             verifier_id=s.verifier_id,
@@ -601,7 +601,7 @@ class PlaytestService(BaseService):
         )
 
     @register_queue_handler("api.playtest.reset")
-    async def _mq_reset(self, message: AbstractIncomingMessage) -> None:
+    async def _process_reset_playtest(self, message: AbstractIncomingMessage) -> None:
         """Consume 'reset' playtest events and perform side effects.
 
         Args:
@@ -612,7 +612,7 @@ class PlaytestService(BaseService):
         s = msgspec.json.decode(message.body, type=PlaytestResetMQ)
         playtest_data = await self.bot.api.get_playtest(s.thread_id)
         map_data = await self.bot.api.get_map(code=playtest_data.code)
-        await self.reset_playtest_votes_and_completions(
+        await self._reset_playtest_votes_and_completions(
             code=map_data.code,
             thread_id=s.thread_id,
             verifier_id=s.verifier_id,
