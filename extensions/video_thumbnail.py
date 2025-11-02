@@ -208,4 +208,5 @@ class VideoThumbnailService:
 
 
 async def setup(bot: Genji) -> None:
+    """Set up VideoThumbnailService."""
     bot.thumbnail_service = VideoThumbnailService(bot.session, fallback="https://cdn.genji.pk/assets/no-thumbnail.jpg")
