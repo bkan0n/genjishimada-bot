@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from typing import Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Optional, Sequence, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
 import aiohttp
 from yarl import URL
 
-from core.genji import Genji
+if TYPE_CHECKING:
+    from core.genji import Genji
 
 YOUTUBE_URL_REGEX = re.compile(
     r"^((https?://(?:www\.)?(?:m\.)?youtube\.com))/((?:oembed\?url=https?%3A//(?:www\.)youtube.com/watch\?(?:v%3D)"
