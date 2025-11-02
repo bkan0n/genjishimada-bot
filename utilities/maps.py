@@ -137,10 +137,10 @@ class MapModel(MapReadDTO):
         Raises:
             AttributeError: If no playtest data is attached.
         """
-        if self.override_finalize is True:
+        if self.override_finalize is not None and self.override_finalize is True:
             return True
 
-        elif self.override_finalize is False:
+        elif self.override_finalize is not None and self.override_finalize is False:
             return False
 
         if not self.playtest:
