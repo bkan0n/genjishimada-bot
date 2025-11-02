@@ -469,8 +469,12 @@ class PlaytestManager(BaseService):
         thread = await self._fetch_thread(thread_id)
         msg = thread.get_partial_message(thread_id)
         await msg.edit(view=view, attachments=[file])
-
-        if playtest_data.finalizable and not view.data.override_finalize:
+        assert playtest_data.playtest
+        if (
+            playtest_data.finalizable
+            and not view.data.override_finalize
+            and playtest_data.playtest.vote_count == playtest_data.playtest_threshold
+        ):
             guild = thread.guild if thread_id else (await self._fetch_thread(thread_id)).guild
             mentions = []
             for c in playtest_data.creators:
