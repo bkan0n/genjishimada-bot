@@ -17,11 +17,15 @@ from genjipk_sdk.models import (
     NewsfeedEvent,
     NewsfeedNewMap,
     Notification,
+    PlaytestApproveCreate,
     PlaytestApproveMQ,
     PlaytestAssociateIDThread,
+    PlaytestForceAcceptCreate,
     PlaytestForceAcceptMQ,
+    PlaytestForceDenyCreate,
     PlaytestForceDenyMQ,
     PlaytestPatchDTO,
+    PlaytestResetCreate,
     PlaytestResetMQ,
     PlaytestVote,
     PlaytestVoteCastMQ,
@@ -371,7 +375,6 @@ class PlaytestManager(BaseService):
             if not delivered:
                 thread = await self._fetch_thread(thread_id)
                 await thread.send(msg)
-
         await self._edit_thread_tags_close(thread_id=thread_id, cancelled=True)
         await self._delete_verification_message_if_any(thread_id=thread_id)
 
@@ -921,13 +924,9 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                 if not view.confirmed:
                     return
                 assert view.difficulty
-                await itx.client.playtest.force_accept_playtest(
-                    code=code,
-                    thread_id=thread_id,
-                    difficulty=view.difficulty,
-                    verifier_id=itx.user.id,
-                    notify_primary_creator_id=primary_creator_id,
-                )
+
+                payload = PlaytestForceAcceptCreate(difficulty=view.difficulty, verifier_id=itx.user.id)
+                await itx.client.api.force_accept_playtest(thread_id, payload)
 
             case "Force Deny":
                 view = ModActionsViewV2("Force Deny", enable_difficulty=False, enable_reason=True)
@@ -936,13 +935,9 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                 if not view.confirmed:
                     return
                 assert view.reason
-                await itx.client.playtest.force_deny_playtest(
-                    code=code,
-                    thread_id=thread_id,
-                    verifier_id=itx.user.id,
-                    reason=view.reason,
-                    notify_primary_creator_id=primary_creator_id,
-                )
+
+                payload = PlaytestForceDenyCreate(verifier_id=itx.user.id, reason=view.reason)
+                await itx.client.api.force_deny_playtest(thread_id, payload)
 
             case "Approve Submission":
                 await itx.response.defer(ephemeral=True, thinking=True)
@@ -951,14 +946,8 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                 data = await itx.client.api.get_all_votes(self.view.data.playtest.thread_id)
                 if not data.average:
                     raise UserFacingError("There are no votes for this playtest. Please use force accept instead.")
-                difficulty = convert_raw_difficulty_to_difficulty_all(data.average)
-                await itx.client.playtest.approve_playtest(
-                    code=code,
-                    thread_id=thread_id,
-                    difficulty=difficulty,
-                    verifier_id=itx.user.id,
-                    primary_creator_id=primary_creator_id,
-                )
+                payload = PlaytestApproveCreate(itx.user.id)
+                await itx.client.api.approve_playtest(thread_id, payload)
                 await itx.edit_original_response(content=self.values[0])
 
             case "Start Process Over":
@@ -968,16 +957,14 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                 if not view.confirmed:
                     return
                 assert view.reason
-                await itx.client.playtest.reset_playtest_votes_and_completions(
-                    code=code,
-                    thread_id=thread_id,
+
+                payload = PlaytestResetCreate(
                     verifier_id=itx.user.id,
                     reason=view.reason,
                     remove_votes=True,
                     remove_completions=True,
-                    notify_primary_creator_id=primary_creator_id,
                 )
-                await self.view.fetch_data_and_rebuild(itx.client)
+                await itx.client.api.reset_playtest(thread_id, payload)
 
             case "Remove Votes":
                 view = ModActionsViewV2("Remove Votes", enable_difficulty=False, enable_reason=True)
@@ -986,16 +973,14 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                 if not view.confirmed:
                     return
                 assert view.reason
-                await itx.client.playtest.reset_playtest_votes_and_completions(
-                    code=code,
-                    thread_id=thread_id,
+
+                payload = PlaytestResetCreate(
                     verifier_id=itx.user.id,
                     reason=view.reason,
                     remove_votes=True,
                     remove_completions=False,
-                    notify_primary_creator_id=primary_creator_id,
                 )
-                await self.view.fetch_data_and_rebuild(itx.client)
+                await itx.client.api.reset_playtest(thread_id, payload)
 
             case "Toggle Finalize Button":
                 self.view.data.override_finalize = not self.view.data.override_finalize
