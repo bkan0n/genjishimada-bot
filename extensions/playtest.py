@@ -1004,8 +1004,9 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                 self.view.rebuild_components()
                 await itx.response.edit_message(view=self.view)
 
+                state = "enabled" if self.view.data.override_finalize else "disabled"
                 _message = (
-                    "The Finalize button has been manually enabled for map "
+                    f"The Finalize button has been manually {state} for map "
                     f"({code}) by {itx.user.mention}.\n\n{_disabled_notifications_alert}"
                 )
                 delivered = await itx.client.notifications.notify_dm(
