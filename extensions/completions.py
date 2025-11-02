@@ -920,7 +920,7 @@ class CompletionsLeaderboardPaginator(PaginatorView[CompletionLeaderboardFormatt
             title = f"{ordinal} - " if ordinal else ""
             formatted = FilteredFormatter(completion).format()
             section = ui.Section(
-                ui.TextDisplay(f"**{title}{completion.name}**\n{formatted}**"),
+                ui.TextDisplay(f"**{title}{completion.name}**\n{formatted}"),
                 accessory=CompletionMessageLink(self.guild_id, self.channel_id, completion.message_id),
             )
             sections.append(section)
