@@ -537,10 +537,17 @@ class CompletionsManager(BaseService):
         message = await partial_message.fetch()
         view = ui.LayoutView.from_message(message)
         for c in view.walk_children():
-            log.info(c)
-            if isinstance(c, CompletionLikeButton):
+            if isinstance(c, ui.Button):
                 log.info("ITS HAPPENING")
-                await c.fetch_and_update_label(self.bot.api, data.user_id, data.message_id)
+                payload = UpvoteCreateDTO(
+                    user_id=data.user_id,
+                    message_id=data.message_id,
+                )
+                data_with_job_status = await self.bot.api.upvote_submission(payload)
+                new_count = str(data_with_job_status.upvotes)
+                if new_count == "None":
+                    return
+                c.label = new_count
 
         await message.edit(view=view)
         await partial_message.forward(self.upvote_channel)
@@ -1019,7 +1026,7 @@ class SetSuspiciousModal(ui.Modal):
             itx: The interaction context associated with the modal.
         """
         await itx.response.defer(ephemeral=True, thinking=True)
-        if self.flag_type.component.values[0] not in get_args(SuspiciousFlag):
+        if self.flag_type.component.values[0] not in get_args(SuspiciousFlag):  # type: ignore
             await itx.edit_original_response(
                 content=f"Flag type must be one of `{', '.join(get_args(SuspiciousFlag))}`",
             )
@@ -1027,7 +1034,7 @@ class SetSuspiciousModal(ui.Modal):
         data = SuspiciousCompletionWriteDTO(
             message_id=self.message_id,
             verification_id=self.verification_id,
-            flag_type=self.flag_type.component.values[0],  # pyright: ignore[reportArgumentType]
+            flag_type=self.flag_type.component.values[0],  # type: ignore
             flagged_by=itx.user.id,
             context=self.context.value,
         )
