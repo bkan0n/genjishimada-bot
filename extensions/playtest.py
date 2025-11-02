@@ -983,7 +983,6 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
 
                 payload = PlaytestApproveCreate(itx.user.id)
                 await itx.client.api.approve_playtest(thread_id, payload)
-                await itx.edit_original_response(content=self.values[0])
 
             case "Start Process Over":
                 view = ModActionsViewV2("Start Process Over", enable_difficulty=False, enable_reason=True)
