@@ -1569,7 +1569,7 @@ class APIClient:
 
     def get_upvotes_from_message_id(self, message_id: int) -> Response[int]:
         """Get upvotes count."""
-        r = Route("POST", f"/completions/upvoting/{message_id}", message_id=message_id)
+        r = Route("GET", f"/completions/upvoting/{message_id}", message_id=message_id)
         return self._request(r, response_model=int)
 
 
