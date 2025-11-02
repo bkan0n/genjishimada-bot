@@ -17,11 +17,15 @@ from genjipk_sdk.models import (
     NewsfeedEvent,
     NewsfeedNewMap,
     Notification,
+    PlaytestApproveCreate,
     PlaytestApproveMQ,
     PlaytestAssociateIDThread,
+    PlaytestForceAcceptCreate,
     PlaytestForceAcceptMQ,
+    PlaytestForceDenyCreate,
     PlaytestForceDenyMQ,
     PlaytestPatchDTO,
+    PlaytestResetCreate,
     PlaytestResetMQ,
     PlaytestVote,
     PlaytestVoteCastMQ,
@@ -37,6 +41,7 @@ from genjipk_sdk.utilities import (
 
 from extensions._queue_registry import register_queue_handler
 from utilities import BaseCog, BaseService
+from utilities.base import ConfirmationView
 from utilities.errors import UserFacingError, on_command_error
 from utilities.formatter import Formatter
 from utilities.maps import MapModel
@@ -136,7 +141,15 @@ class PlaytestManager(BaseService):
         playtest_data = await self.bot.api.get_map(playtest_thread_id=thread.id)
         file = await self.bot.api.get_plot_file(code=playtest_data.code)
 
+        cog: "PlaytestCog" = self.bot.cogs["PlaytestCog"]  # pyright: ignore[reportAssignmentType]
+        previous_view = cog.playtest_views.get(playtest_id, None)
+        if previous_view:
+            previous_view.stop()
+
         view = PlaytestComponentsV2View(data=playtest_data, thread_id=thread.id)
+
+        cog.playtest_views[playtest_id] = view
+
         await message.edit(content=None, view=view, attachments=[file])
         await thread.send(f"<@{playtest_data.primary_creator_id}>")
 
@@ -209,6 +222,8 @@ class PlaytestManager(BaseService):
             difficulty=m.difficulty,
             banner_url=m.map_banner,
             creators=[x.name for x in m.creators],
+            official=m.official,
+            title=m.title,
         )
         event = NewsfeedEvent(id=0, timestamp=discord.utils.utcnow(), payload=payload, event_type="new_map")
         await self.bot.api.create_newsfeed(event)
@@ -369,7 +384,6 @@ class PlaytestManager(BaseService):
             if not delivered:
                 thread = await self._fetch_thread(thread_id)
                 await thread.send(msg)
-
         await self._edit_thread_tags_close(thread_id=thread_id, cancelled=True)
         await self._delete_verification_message_if_any(thread_id=thread_id)
 
@@ -442,14 +456,26 @@ class PlaytestManager(BaseService):
             thread_id (int): Playtest thread ID.
         """
         playtest_data = await self.bot.api.get_map(playtest_thread_id=thread_id)
+        cog: "PlaytestCog" = self.bot.cogs["PlaytestCog"]  # pyright: ignore[reportAssignmentType]
+
+        previous_view = cog.playtest_views.get(thread_id, None)
         view = PlaytestComponentsV2View(data=playtest_data, thread_id=thread_id)
+        if previous_view:
+            previous_view.stop()
+            view.data.override_finalize = previous_view.data.override_finalize
+            view.rebuild_components()
+        cog.playtest_views[thread_id] = view
 
         file = await self.bot.api.get_plot_file(thread_id=thread_id)
         thread = await self._fetch_thread(thread_id)
         msg = thread.get_partial_message(thread_id)
         await msg.edit(view=view, attachments=[file])
-
-        if playtest_data.finalizable:
+        assert playtest_data.playtest
+        if (
+            playtest_data.finalizable
+            and not view.data.override_finalize
+            and playtest_data.playtest.vote_count == playtest_data.playtest_threshold
+        ):
             guild = thread.guild if thread_id else (await self._fetch_thread(thread_id)).guild
             mentions = []
             for c in playtest_data.creators:
@@ -470,8 +496,8 @@ class PlaytestManager(BaseService):
             difficulty_value (float): Raw difficulty value to convert and display.
         """
         label = convert_raw_difficulty_to_difficulty_all(difficulty_value)
-        await self._announce_vote_in_thread(thread_id=thread_id, voter_id=voter_id, label=label)
         await self._rebuild_view_and_plot(thread_id=thread_id)
+        await self._announce_vote_in_thread(thread_id=thread_id, voter_id=voter_id, label=label)
 
     async def remove_vote_discord_side(self, *, thread_id: int, voter_id: int) -> None:
         """Announce a removed vote and refresh the UI/plot.
@@ -480,8 +506,8 @@ class PlaytestManager(BaseService):
             thread_id (int): Playtest thread ID.
             voter_id (int): Discord user ID of the voter.
         """
-        await self._announce_vote_in_thread(thread_id=thread_id, voter_id=voter_id, label=None)
         await self._rebuild_view_and_plot(thread_id=thread_id)
+        await self._announce_vote_in_thread(thread_id=thread_id, voter_id=voter_id, label=None)
 
     @register_queue_handler("api.playtest.vote.cast")
     async def _mq_vote_cast(self, message: AbstractIncomingMessage) -> None:
@@ -808,12 +834,16 @@ class DifficultyRatingSelect(discord.ui.Select["PlaytestComponentsV2View"]):
             itx (GenjiItx): The interaction that triggered the select.
         """
         choice = self.values[0]
-        await itx.response.send_message(f"You voted **{choice}**. Updating...", ephemeral=True)
+        await itx.response.defer(ephemeral=True, thinking=True)
 
         assert isinstance(itx.channel, discord.Thread)
         thread_id = itx.channel.id
         user_id = itx.user.id
         code = self.view.data.code
+
+        m = await itx.client.api.get_map(code=code)
+        if user_id in (c.id for c in m.creators):
+            raise UserFacingError("Vote failed. You cannot vote for your own map.")
 
         if choice == "Remove Vote":
             try:
@@ -836,6 +866,8 @@ class DifficultyRatingSelect(discord.ui.Select["PlaytestComponentsV2View"]):
                     "Vote failed. You do not have a verified, non-completion submission associated with this map."
                 )
             raise e
+
+        await itx.edit_original_response(content=f"You voted **{choice}**. Updating...")
 
 
 class SelectOptionsTuple(NamedTuple):
@@ -913,13 +945,9 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                 if not view.confirmed:
                     return
                 assert view.difficulty
-                await itx.client.playtest.force_accept_playtest(
-                    code=code,
-                    thread_id=thread_id,
-                    difficulty=view.difficulty,
-                    verifier_id=itx.user.id,
-                    notify_primary_creator_id=primary_creator_id,
-                )
+
+                payload = PlaytestForceAcceptCreate(difficulty=view.difficulty, verifier_id=itx.user.id)
+                await itx.client.api.force_accept_playtest(thread_id, payload)
 
             case "Force Deny":
                 view = ModActionsViewV2("Force Deny", enable_difficulty=False, enable_reason=True)
@@ -928,13 +956,9 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                 if not view.confirmed:
                     return
                 assert view.reason
-                await itx.client.playtest.force_deny_playtest(
-                    code=code,
-                    thread_id=thread_id,
-                    verifier_id=itx.user.id,
-                    reason=view.reason,
-                    notify_primary_creator_id=primary_creator_id,
-                )
+
+                payload = PlaytestForceDenyCreate(verifier_id=itx.user.id, reason=view.reason)
+                await itx.client.api.force_deny_playtest(thread_id, payload)
 
             case "Approve Submission":
                 await itx.response.defer(ephemeral=True, thinking=True)
@@ -943,15 +967,22 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                 data = await itx.client.api.get_all_votes(self.view.data.playtest.thread_id)
                 if not data.average:
                     raise UserFacingError("There are no votes for this playtest. Please use force accept instead.")
-                difficulty = convert_raw_difficulty_to_difficulty_all(data.average)
-                await itx.client.playtest.approve_playtest(
-                    code=code,
-                    thread_id=thread_id,
-                    difficulty=difficulty,
-                    verifier_id=itx.user.id,
-                    primary_creator_id=primary_creator_id,
-                )
-                await itx.edit_original_response(content=self.values[0])
+                if len(data.votes) < self.view.data.playtest_threshold:
+                    message = (
+                        "This playtest does not have enough votes to meet the threshold for approval. "
+                        "Are you sure you want to approve it with the current vote average?"
+                    )
+                else:
+                    message = "Are you sure you want to approve this submission?"
+                confirmation_view = ConfirmationView(message)
+                await itx.edit_original_response(view=confirmation_view)
+                confirmation_view.original_interaction = itx
+                await confirmation_view.wait()
+                if not confirmation_view.confirmed:
+                    return
+
+                payload = PlaytestApproveCreate(itx.user.id)
+                await itx.client.api.approve_playtest(thread_id, payload)
 
             case "Start Process Over":
                 view = ModActionsViewV2("Start Process Over", enable_difficulty=False, enable_reason=True)
@@ -960,16 +991,14 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                 if not view.confirmed:
                     return
                 assert view.reason
-                await itx.client.playtest.reset_playtest_votes_and_completions(
-                    code=code,
-                    thread_id=thread_id,
+
+                payload = PlaytestResetCreate(
                     verifier_id=itx.user.id,
                     reason=view.reason,
                     remove_votes=True,
                     remove_completions=True,
-                    notify_primary_creator_id=primary_creator_id,
                 )
-                await self.view.fetch_data_and_rebuild(itx.client)
+                await itx.client.api.reset_playtest(thread_id, payload)
 
             case "Remove Votes":
                 view = ModActionsViewV2("Remove Votes", enable_difficulty=False, enable_reason=True)
@@ -978,24 +1007,24 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                 if not view.confirmed:
                     return
                 assert view.reason
-                await itx.client.playtest.reset_playtest_votes_and_completions(
-                    code=code,
-                    thread_id=thread_id,
+
+                payload = PlaytestResetCreate(
                     verifier_id=itx.user.id,
                     reason=view.reason,
                     remove_votes=True,
                     remove_completions=False,
-                    notify_primary_creator_id=primary_creator_id,
                 )
-                await self.view.fetch_data_and_rebuild(itx.client)
+                await itx.client.api.reset_playtest(thread_id, payload)
 
             case "Toggle Finalize Button":
                 self.view.data.override_finalize = not self.view.data.override_finalize
+
                 self.view.rebuild_components()
                 await itx.response.edit_message(view=self.view)
 
+                state = "enabled" if self.view.data.override_finalize else "disabled"
                 _message = (
-                    "The Finalize button has been manually enabled for map "
+                    f"The Finalize button has been manually {state} for map "
                     f"({code}) by {itx.user.mention}.\n\n{_disabled_notifications_alert}"
                 )
                 delivered = await itx.client.notifications.notify_dm(
@@ -1230,8 +1259,10 @@ class PlaytestComponentsV2View(discord.ui.LayoutView):
         Args:
             bot (core.Genji): Bot instance used to query the API.
         """
+        overridden = self.data.override_finalize
         data = await bot.api.get_map(playtest_thread_id=self.thread_id)
         self.data = data
+        self.data.override_finalize = overridden
 
     async def fetch_data_and_rebuild(self, bot: core.Genji) -> None:
         """Fetch fresh map data and rebuild the components.

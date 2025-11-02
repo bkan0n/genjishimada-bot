@@ -114,6 +114,7 @@ class MapModel(MapReadDTO):
         )
         return {
             "Code": self.code,
+            "Title": self.title,
             "Creator": discord.utils.escape_markdown(", ".join(creator_names)),
             "Map": self.map_name,
             "Category": self.category,
@@ -137,19 +138,33 @@ class MapModel(MapReadDTO):
             AttributeError: If no playtest data is attached.
         """
         if self.override_finalize is True:
+            log.debug("Finalizable: Override is true=True")
             return True
-
-        elif self.override_finalize is False:
-            return False
 
         if not self.playtest:
             raise AttributeError("This data does not have a playtest attached.")
+
         if not self.playtest.vote_count:
+            log.debug("Finalizable: Vote count is 0=false")
             return False
 
+        if self.playtest.vote_count >= self.playtest_threshold:
+            log.debug("Finalizable: Hit the threshold=true")
+            return True
+
+        if self.override_finalize in (False, None):
+            log.debug("Finalizable: Override is false=false")
+            return False
+
+        log.debug("Finalizable: None of the above=false")
+        return False
+
+    @property
+    def playtest_threshold(self) -> int:
+        if not self.playtest:
+            raise AttributeError("This data does not have a playtest attached.")
         _diff = convert_raw_difficulty_to_difficulty_top(self.playtest.initial_difficulty)
-        threshold = PLAYTEST_VOTE_THRESHOLD[_diff]
-        return self.playtest.vote_count >= threshold
+        return PLAYTEST_VOTE_THRESHOLD[_diff]
 
 
 class PartialMapCreateModel(msgspec.Struct):

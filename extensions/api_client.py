@@ -42,8 +42,12 @@ from genjipk_sdk.models import (
     Notification,
     OverwatchUsernamesReadDTO,
     OverwatchUsernamesUpdate,
+    PlaytestApproveCreate,
     PlaytestAssociateIDThread,
+    PlaytestForceAcceptCreate,
+    PlaytestForceDenyCreate,
     PlaytestPatchDTO,
+    PlaytestResetCreate,
     PlaytestVote,
     PlaytestVotesAll,
     QualityValueDTO,
@@ -1542,6 +1546,26 @@ class APIClient:
         """Autocomplete tag names (aliased/non-aliased, owned variants)."""
         r = Route("POST", "/tags/autocomplete")
         return self._request(r, response_model=TagsAutocompleteResponse, data=data)
+
+    def approve_playtest(self, thread_id: int, data: PlaytestApproveCreate) -> Response[JobStatus]:
+        """Approve playtest submission."""
+        r = Route("POST", "/maps/playtests/{thread_id}/approve", thread_id=thread_id)
+        return self._request(r, response_model=JobStatus, data=data)
+
+    def force_accept_playtest(self, thread_id: int, data: PlaytestForceAcceptCreate) -> Response[JobStatus]:
+        """Force accept playtest submission."""
+        r = Route("POST", "/maps/playtests/{thread_id}/force_accept", thread_id=thread_id)
+        return self._request(r, response_model=JobStatus, data=data)
+
+    def force_deny_playtest(self, thread_id: int, data: PlaytestForceDenyCreate) -> Response[JobStatus]:
+        """Force deny playtest submission."""
+        r = Route("POST", "/maps/playtests/{thread_id}/force_deny", thread_id=thread_id)
+        return self._request(r, response_model=JobStatus, data=data)
+
+    def reset_playtest(self, thread_id: int, data: PlaytestResetCreate) -> Response[JobStatus]:
+        """Reset playtest submission."""
+        r = Route("POST", f"/maps/playtests/{thread_id}/reset", thread_id=thread_id)
+        return self._request(r, response_model=JobStatus, data=data)
 
 
 async def setup(bot: core.Genji) -> None:
