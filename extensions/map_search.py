@@ -97,7 +97,7 @@ class MapGuideView(PaginatorView[FormattableGuide]):
 
 
 class MapSearchCog(BaseCog):
-    @app_commands.command()
+    @app_commands.command(name="map-search")
     @app_commands.choices(
         difficulty=[app_commands.Choice(name=d, value=d) for d in get_args(DifficultyTop)],
         minimum_quality=[
