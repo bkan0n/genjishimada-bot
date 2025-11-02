@@ -539,13 +539,8 @@ class CompletionsManager(BaseService):
         for c in view.walk_children():
             if isinstance(c, ui.Button):
                 log.info("ITS HAPPENING")
-                payload = UpvoteCreateDTO(
-                    user_id=data.user_id,
-                    message_id=data.message_id,
-                )
-                data_with_job_status = await self.bot.api.upvote_submission(payload)
-                new_count = str(data_with_job_status.upvotes)
-                if new_count == "None":
+                new_count = str(await self.bot.api.get_upvotes_from_message_id(data.message_id))
+                if new_count == "0":
                     return
                 c.label = new_count
 

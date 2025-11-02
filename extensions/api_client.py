@@ -1567,6 +1567,11 @@ class APIClient:
         r = Route("POST", f"/maps/playtests/{thread_id}/reset", thread_id=thread_id)
         return self._request(r, response_model=JobStatus, data=data)
 
+    def get_upvotes_from_message_id(self, message_id: int) -> Response[int]:
+        """Get upvotes count."""
+        r = Route("POST", f"/completions/upvoting/{message_id}", message_id=message_id)
+        return self._request(r, response_model=int)
+
 
 async def setup(bot: core.Genji) -> None:
     """Set up the HTTP client extension."""
