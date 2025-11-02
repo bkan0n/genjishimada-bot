@@ -50,7 +50,6 @@ from genjipk_sdk.utilities import DIFFICULTY_TO_RANK_MAP, DifficultyAll
 from genjipk_sdk.utilities._types import OverwatchCode
 
 from extensions._queue_registry import register_queue_handler
-from extensions.api_client import APIClient
 from utilities import transformers
 from utilities.base import (
     BaseCog,
@@ -76,6 +75,7 @@ if TYPE_CHECKING:
     from aio_pika.abc import AbstractIncomingMessage
 
     from core.genji import Genji
+    from extensions.api_client import APIClient
     from utilities._types import GenjiItx
 
 log = getLogger(__name__)
