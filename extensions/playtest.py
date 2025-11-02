@@ -463,6 +463,7 @@ class PlaytestManager(BaseService):
         if previous_view:
             previous_view.stop()
             view.data.override_finalize = previous_view.data.override_finalize
+            view.rebuild_components()
         cog.playtest_views[thread_id] = view
 
         file = await self.bot.api.get_plot_file(thread_id=thread_id)
