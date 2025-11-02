@@ -137,20 +137,24 @@ class MapModel(MapReadDTO):
         Raises:
             AttributeError: If no playtest data is attached.
         """
-        if self.override_finalize is not None and self.override_finalize is True:
+        if self.override_finalize is True:
             return True
-
-        elif self.override_finalize is not None and self.override_finalize is False:
-            return False
 
         if not self.playtest:
             raise AttributeError("This data does not have a playtest attached.")
+
         if not self.playtest.vote_count:
             return False
 
         _diff = convert_raw_difficulty_to_difficulty_top(self.playtest.initial_difficulty)
         threshold = PLAYTEST_VOTE_THRESHOLD[_diff]
-        return self.playtest.vote_count >= threshold
+        if self.playtest.vote_count >= threshold:
+            return True
+
+        if self.override_finalize in (False, None):
+            return False
+
+        return False
 
 
 class PartialMapCreateModel(msgspec.Struct):
