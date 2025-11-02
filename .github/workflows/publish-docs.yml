@@ -3,6 +3,8 @@ name: Publish Docs (MkDocs → Pages)
 on:
   push:
     branches: [main]
+    paths:
+      - "docs"
   workflow_dispatch:
 
 # Required for the new Pages flow
