@@ -210,12 +210,6 @@ class PlaytestManager(BaseService):
             banner_url=m.map_banner,
             creators=[x.name for x in m.creators],
         )
-        log.info(m.map_banner)
-        log.info(m.map_banner)
-        log.info(m.map_banner)
-        log.info(m.map_banner)
-        log.info(m.map_banner)
-        log.info(m.map_banner)
         event = NewsfeedEvent(id=0, timestamp=discord.utils.utcnow(), payload=payload, event_type="new_map")
         await self.bot.api.create_newsfeed(event)
 

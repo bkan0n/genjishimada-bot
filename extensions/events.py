@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import discord
 from discord import Member, User
+from discord.app_commands import Command, ContextMenu
 from discord.ext import commands, tasks
 from genjipk_sdk.models import NewsfeedAnnouncement, NewsfeedEvent, UserCreateDTO, UserUpdateDTO
 
@@ -142,6 +143,9 @@ class EventsCog(BaseCog):
             _namespace,
         )
         await self.bot.api.log_analytics(itx.command.qualified_name, itx.user.id, itx.created_at, _namespace)
+
+    @commands.Cog.listener()
+    async def on_app_command_completion(self, itx: GenjiItx, command: Command | ContextMenu): ...
 
 
 async def setup(bot: Genji) -> None:

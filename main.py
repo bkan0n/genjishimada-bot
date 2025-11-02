@@ -1,5 +1,7 @@
 # ruff: noqa: E402
+import sentry_sdk
 import truststore
+from sentry_sdk.integrations.asyncio import AsyncioIntegration
 
 truststore.inject_into_ssl()
 import asyncio
@@ -10,13 +12,10 @@ from typing import Iterator
 
 import aiohttp
 import discord
-import sentry_sdk
-from dotenv import load_dotenv
 
 import core
 from utilities.errors import on_command_error
 
-load_dotenv(".env")
 SENTRY_DSN = os.getenv("SENTRY_DSN")
 BOT_ENVIRONMENT = os.getenv("BOT_ENVIRONMENT")
 
@@ -71,11 +70,18 @@ async def main() -> None:
     """Start the bot instance."""
     sentry_sdk.init(
         dsn=SENTRY_DSN,
-        send_default_pii=False,
+        send_default_pii=True,
+        enable_logs=True,
         traces_sample_rate=1.0,
         profile_session_sample_rate=1.0,
+        profile_lifecycle="trace",
         environment=BOT_ENVIRONMENT,
+        integrations=[
+            AsyncioIntegration(),
+        ],
+        debug=True,
     )
+
     logging.getLogger("discord.gateway").setLevel("WARNING")
     prefix = "?" if BOT_ENVIRONMENT == "production" else "!"
     async with aiohttp.ClientSession() as http_session:
