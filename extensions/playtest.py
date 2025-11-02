@@ -41,6 +41,7 @@ from genjipk_sdk.utilities import (
 
 from extensions._queue_registry import register_queue_handler
 from utilities import BaseCog, BaseService
+from utilities.base import ConfirmationView
 from utilities.errors import UserFacingError, on_command_error
 from utilities.formatter import Formatter
 from utilities.maps import MapModel
@@ -966,6 +967,20 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                 data = await itx.client.api.get_all_votes(self.view.data.playtest.thread_id)
                 if not data.average:
                     raise UserFacingError("There are no votes for this playtest. Please use force accept instead.")
+                if len(data.votes) < self.view.data.playtest_threshold:
+                    message = (
+                        "This playtest does not have enough votes to meet the threshold for approval. "
+                        "Are you sure you want to approve it with the current vote average?"
+                    )
+                else:
+                    message = "Are you sure you want to approve this submission?"
+                confirmation_view = ConfirmationView(message)
+                await itx.edit_original_response(view=confirmation_view)
+                confirmation_view.original_interaction = itx
+                await confirmation_view.wait()
+                if not confirmation_view.confirmed:
+                    return
+
                 payload = PlaytestApproveCreate(itx.user.id)
                 await itx.client.api.approve_playtest(thread_id, payload)
                 await itx.edit_original_response(content=self.values[0])
