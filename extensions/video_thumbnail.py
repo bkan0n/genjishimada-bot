@@ -1,7 +1,5 @@
-# video_thumbnails.py
 from __future__ import annotations
 
-import asyncio
 import re
 from abc import ABC, abstractmethod
 from typing import Optional, Sequence, Tuple
@@ -9,6 +7,8 @@ from urllib.parse import urlsplit, urlunsplit
 
 import aiohttp
 from yarl import URL
+
+from core.genji import Genji
 
 YOUTUBE_URL_REGEX = re.compile(
     r"^((https?://(?:www\.)?(?:m\.)?youtube\.com))/((?:oembed\?url=https?%3A//(?:www\.)youtube.com/watch\?(?:v%3D)"
@@ -207,19 +207,5 @@ class VideoThumbnailService:
         return self._fallback if self._fallback is not None else url
 
 
-if __name__ == "__main__":
-
-    async def _demo() -> None:
-        samples = [
-            "https://youtu.be/dQw4w9WgXcQ",
-            "https://www.bilibili.com/video/BV1sQtmzcE5x",
-            "https://b23.tv/LSSgnJm",
-            "https://example.com/not-a-video",
-        ]
-        async with aiohttp.ClientSession() as s:
-            svc = VideoThumbnailService(session=s, fallback="https://placehold.co/1280x720?text=No+Preview")
-            for u in samples:
-                t = await svc.get_thumbnail(u)
-                print(u, "->", t)
-
-    asyncio.run(_demo())
+async def setup(bot: Genji) -> None:
+    bot.thumbnail_service = VideoThumbnailService(bot.session, fallback="https://cdn.genji.pk/assets/no-thumbnail.jpg")

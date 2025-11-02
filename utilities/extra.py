@@ -6,8 +6,9 @@ import uuid
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from extensions.api_service import APIService
     from genjipk_sdk.models import JobStatus
+
+    from extensions.api_service import APIService
 
 
 def time_convert(string: str) -> float:
