@@ -4,16 +4,16 @@ import os
 import aiohttp
 import discord
 from discord.ext import commands
+from extensions.api_service import APIService
 
 import extensions
 import utilities.config
-from extensions.api_client import APIClient
-from extensions.completions import CompletionsManager
+from extensions.completions import CompletionsService
 from extensions.newsfeed import NewsfeedService
 from extensions.notifications import NotificationService
-from extensions.playtest import PlaytestManager
-from extensions.rabbit import RabbitClient
-from extensions.xp import XPManager
+from extensions.playtest import PlaytestService
+from extensions.rabbit import RabbitService
+from extensions.xp import XPService
 from utilities.thumbnails import VideoThumbnailService
 
 __all__ = ("Genji",)
@@ -35,12 +35,12 @@ intents = discord.Intents(
 
 class Genji(commands.Bot):
     _notification_service: NotificationService
-    _rabbit_client: RabbitClient
-    _playtest_manager: PlaytestManager
+    _rabbit_client: RabbitService
+    _playtest_manager: PlaytestService
     _newsfeed_client: NewsfeedService
-    _api_client: APIClient
-    _completions_manager: CompletionsManager
-    _xp_manager: XPManager
+    _api_service: APIService
+    _completions_manager: CompletionsService
+    _xp_manager: XPService
     thumbnail_service: VideoThumbnailService
 
     def __init__(self, *, prefix: str, session: aiohttp.ClientSession) -> None:
@@ -86,25 +86,25 @@ class Genji(commands.Bot):
         self._notification_service = service
 
     @property
-    def rabbit(self) -> RabbitClient:
+    def rabbit(self) -> RabbitService:
         """Return the notification service."""
         if self._rabbit_client is None:
             raise AttributeError("Notification service not initialized.")
         return self._rabbit_client
 
     @rabbit.setter
-    def rabbit(self, service: RabbitClient) -> None:
+    def rabbit(self, service: RabbitService) -> None:
         self._rabbit_client = service
 
     @property
-    def playtest(self) -> PlaytestManager:
+    def playtest(self) -> PlaytestService:
         """Return the playtest service."""
         if self._playtest_manager is None:
             raise AttributeError("Playtest service not initialized.")
         return self._playtest_manager
 
     @playtest.setter
-    def playtest(self, service: PlaytestManager) -> None:
+    def playtest(self, service: PlaytestService) -> None:
         self._playtest_manager = service
 
     @property
@@ -119,28 +119,28 @@ class Genji(commands.Bot):
         self._newsfeed_client = service
 
     @property
-    def api(self) -> APIClient:
+    def api(self) -> APIService:
         """Return the API client."""
-        return self._api_client
+        return self._api_service
 
     @api.setter
-    def api(self, service: APIClient) -> None:
-        self._api_client = service
+    def api(self, service: APIService) -> None:
+        self._api_service = service
 
     @property
-    def completions(self) -> CompletionsManager:
-        """Return the CompletionsManager service."""
+    def completions(self) -> CompletionsService:
+        """Return the CompletionsService service."""
         return self._completions_manager
 
     @completions.setter
-    def completions(self, service: CompletionsManager) -> None:
+    def completions(self, service: CompletionsService) -> None:
         self._completions_manager = service
 
     @property
-    def xp(self) -> XPManager:
-        """Return the CompletionsManager service."""
+    def xp(self) -> XPService:
+        """Return the CompletionsService service."""
         return self._xp_manager
 
     @xp.setter
-    def xp(self, service: XPManager) -> None:
+    def xp(self, service: XPService) -> None:
         self._xp_manager = service

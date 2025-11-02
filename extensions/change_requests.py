@@ -23,8 +23,7 @@ from utilities.transformers import CodeAllTransformer
 
 if typing.TYPE_CHECKING:
     from core import Genji
-
-    GenjiItx: typing.TypeAlias = discord.Interaction[Genji]
+    from utilities._types import GenjiItx
 
 
 log = logging.getLogger(__name__)

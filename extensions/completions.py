@@ -75,7 +75,6 @@ if TYPE_CHECKING:
     from aio_pika.abc import AbstractIncomingMessage
 
     from core.genji import Genji
-    from extensions.api_client import APIClient
     from utilities._types import GenjiItx
 
 log = getLogger(__name__)
@@ -404,19 +403,16 @@ class CompletionLikeButton(ui.DynamicItem[ui.Button["CompletionView"]], template
         """
         await itx.response.defer(ephemeral=True)
         assert itx.message
-        await self.fetch_and_update_label(itx.client.api, itx.user.id, itx.message.id)
-        await itx.edit_original_response(view=self.view)
-
-    async def fetch_and_update_label(self, api: APIClient, user_id: int, message_id: int) -> None:
         data = UpvoteCreateDTO(
-            user_id=user_id,
-            message_id=message_id,
+            user_id=itx.user.id,
+            message_id=itx.message.id,
         )
-        data_with_job_status = await api.upvote_submission(data)
+        data_with_job_status = await itx.client.api.upvote_submission(data)
         new_count = str(data_with_job_status.upvotes)
         if new_count == "None":
             return
         self.item.label = new_count
+        await itx.edit_original_response(view=self.view)
 
 
 class CompletionView(ui.LayoutView):
@@ -486,7 +482,7 @@ class CompletionView(ui.LayoutView):
         self.add_item(container)
 
 
-class CompletionsManager(BaseService):
+class CompletionsService(BaseService):
     submission_channel: TextChannel
     verification_channel: TextChannel
     upvote_channel: TextChannel
@@ -1289,7 +1285,7 @@ class CompletionsCog(BaseCog):
 
 async def setup(bot: Genji) -> None:
     """Load the CompletionsCog cog."""
-    bot.completions = CompletionsManager(bot)
+    bot.completions = CompletionsService(bot)
     await bot.add_cog(CompletionsCog(bot))
 
 

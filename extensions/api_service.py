@@ -160,11 +160,11 @@ class Route:
         self.url: str = url
 
 
-class APIClient:
+class APIService:
     """Represents an HTTP client sending HTTP requests to the Genji Shimada API."""
 
     def __init__(self) -> None:
-        """Initialize the APIClient with authentication and heartbeat logic."""
+        """Initialize the APIService with authentication and heartbeat logic."""
         self.api_key: str = os.getenv("API_KEY", "")
         self._encoder = msgspec.json.Encoder(decimal_format="number")
         self.__session: aiohttp.ClientSession = aiohttp.ClientSession(headers={"X-API-KEY": self.api_key})
@@ -183,7 +183,7 @@ class APIClient:
                         interval = retry_after
             except Exception:
                 self._is_available = False
-                log.warning("Genji Shimada APIClient Heartbeat blocked.")
+                log.warning("Genji Shimada APIService Heartbeat blocked.")
             await asyncio.sleep(interval)
 
     async def _check_availability(self) -> int | None:
@@ -1575,4 +1575,4 @@ class APIClient:
 
 async def setup(bot: core.Genji) -> None:
     """Set up the HTTP client extension."""
-    bot.api = APIClient()
+    bot.api = APIService()

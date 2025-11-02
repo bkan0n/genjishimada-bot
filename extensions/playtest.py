@@ -64,7 +64,7 @@ _disabled_notifications_alert = (
 )
 
 
-class PlaytestManager(BaseService):
+class PlaytestService(BaseService):
     playtest_channel: discord.ForumChannel
     verification_channel: discord.TextChannel
 
@@ -1325,7 +1325,7 @@ async def setup(bot: core.Genji) -> None:
         bot (core.Genji): Bot instance to extend.
     """
     log.debug("[extensions.playtest] Setup called")
-    bot.playtest = PlaytestManager(bot)
+    bot.playtest = PlaytestService(bot)
     await bot.add_cog(PlaytestCog(bot))
 
 

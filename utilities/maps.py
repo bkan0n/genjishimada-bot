@@ -161,6 +161,7 @@ class MapModel(MapReadDTO):
 
     @property
     def playtest_threshold(self) -> int:
+        """Get the playtest threshold for this map."""
         if not self.playtest:
             raise AttributeError("This data does not have a playtest attached.")
         _diff = convert_raw_difficulty_to_difficulty_top(self.playtest.initial_difficulty)

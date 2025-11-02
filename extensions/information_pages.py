@@ -267,6 +267,7 @@ class ServerRoleToggleButton(ui.Button):
     guild: Guild
 
     def __init__(self, *, bot: Genji, label: str, role_id: int, emoji: str | None = None) -> None:
+        """Initialize the ServerRoleToggleButton button."""
         self.bot = bot
         self.role_id = role_id
         self.role = None  # pyright: ignore[reportAttributeAccessIssue]

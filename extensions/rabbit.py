@@ -37,9 +37,9 @@ QueueHandler: TypeAlias = Callable[[AbstractIncomingMessage], Awaitable[None]]
 F = TypeVar("F", bound=Callable[..., Awaitable[None]])
 
 
-class RabbitClient:
+class RabbitService:
     def __init__(self, bot: core.Genji) -> None:
-        """Initialize a new RabbitClient instance.
+        """Initialize a new RabbitService instance.
 
         Args:
             bot (core.Genji): The Genji bot instance used for contextual operations.
@@ -322,4 +322,4 @@ class RabbitClient:
 
 async def setup(bot: core.Genji) -> None:
     """Setup the message queue extension."""
-    bot.rabbit = RabbitClient(bot)
+    bot.rabbit = RabbitService(bot)
