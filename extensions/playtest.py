@@ -140,7 +140,15 @@ class PlaytestManager(BaseService):
         playtest_data = await self.bot.api.get_map(playtest_thread_id=thread.id)
         file = await self.bot.api.get_plot_file(code=playtest_data.code)
 
+        cog: "PlaytestCog" = self.bot.cogs["PlaytestCog"]  # pyright: ignore[reportAssignmentType]
+        previous_view = cog.playtest_views.get(playtest_id, None)
+        if previous_view:
+            previous_view.stop()
+
         view = PlaytestComponentsV2View(data=playtest_data, thread_id=thread.id)
+
+        cog.playtest_views[playtest_id] = view
+
         await message.edit(content=None, view=view, attachments=[file])
         await thread.send(f"<@{playtest_data.primary_creator_id}>")
 
@@ -447,14 +455,22 @@ class PlaytestManager(BaseService):
             thread_id (int): Playtest thread ID.
         """
         playtest_data = await self.bot.api.get_map(playtest_thread_id=thread_id)
+        cog: "PlaytestCog" = self.bot.cogs["PlaytestCog"]  # pyright: ignore[reportAssignmentType]
+
+        previous_view = cog.playtest_views.get(thread_id, None)
+
         view = PlaytestComponentsV2View(data=playtest_data, thread_id=thread_id)
+        if previous_view:
+            previous_view.stop()
+            view.data.override_finalize = previous_view.data.override_finalize
+        cog.playtest_views[thread_id] = view
 
         file = await self.bot.api.get_plot_file(thread_id=thread_id)
         thread = await self._fetch_thread(thread_id)
         msg = thread.get_partial_message(thread_id)
         await msg.edit(view=view, attachments=[file])
 
-        if playtest_data.finalizable:
+        if playtest_data.finalizable and not view.data.override_finalize:
             guild = thread.guild if thread_id else (await self._fetch_thread(thread_id)).guild
             mentions = []
             for c in playtest_data.creators:
