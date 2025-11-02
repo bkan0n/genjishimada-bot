@@ -1000,7 +1000,12 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                 await itx.client.api.reset_playtest(thread_id, payload)
 
             case "Toggle Finalize Button":
+                log.info(f"Before: {self.view.data.override_finalize=}")
+
                 self.view.data.override_finalize = not self.view.data.override_finalize
+
+                log.info(f"After: {self.view.data.override_finalize=}")
+
                 self.view.rebuild_components()
                 await itx.response.edit_message(view=self.view)
 
