@@ -209,6 +209,8 @@ class PlaytestManager(BaseService):
             difficulty=m.difficulty,
             banner_url=m.map_banner,
             creators=[x.name for x in m.creators],
+            official=m.official,
+            title=m.title,
         )
         event = NewsfeedEvent(id=0, timestamp=discord.utils.utcnow(), payload=payload, event_type="new_map")
         await self.bot.api.create_newsfeed(event)

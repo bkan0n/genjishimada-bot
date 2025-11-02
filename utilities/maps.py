@@ -114,6 +114,7 @@ class MapModel(MapReadDTO):
         )
         return {
             "Code": self.code,
+            "Title": self.title,
             "Creator": discord.utils.escape_markdown(", ".join(creator_names)),
             "Map": self.map_name,
             "Category": self.category,
