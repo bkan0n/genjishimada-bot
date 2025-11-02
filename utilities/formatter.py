@@ -54,9 +54,12 @@ class FilteredFormatter(FormatterABC):
             for k, v in self.values.items()
             if v is not False and v is not None and v != "" and k not in self.filter_fields
         }
-        for i, (name, value) in enumerate(filtered_values.items()):
-            wrapped_name = self._wrap_str_code_block(name)
-            res += f"> {wrapped_name} {value}\n"
+        for _, (name, value) in enumerate(filtered_values.items()):
+            if name == " ":
+                res += f"{value}\n"
+            else:
+                wrapped_name = self._wrap_str_code_block(name)
+                res += f"> {wrapped_name} {value}\n"
         return res
 
 

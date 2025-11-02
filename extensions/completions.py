@@ -833,9 +833,11 @@ class CompletionLeaderboardFormattable(CompletionReadDTO):
         Returns:
             dict[str, str | None]: Mapping of field names to values.
         """
+        _medal = self.legacy_medal if self.legacy else self.medal
         return {
-            "Time": f"{self.time} {get_completion_icon_emoji(self.rank, self.medal)}",
+            "Time": f"{self.time} {get_completion_icon_emoji(self.rank, _medal)}",
             "Video": self.video,
+            " ": "-# This is a legacy record" if self.legacy else None,
         }
 
 
