@@ -50,6 +50,7 @@ from genjipk_sdk.utilities import DIFFICULTY_TO_RANK_MAP, DifficultyAll
 from genjipk_sdk.utilities._types import OverwatchCode
 
 from extensions._queue_registry import register_queue_handler
+from extensions.api_client import APIClient
 from utilities import transformers
 from utilities.base import (
     BaseCog,
@@ -403,16 +404,19 @@ class CompletionLikeButton(ui.DynamicItem[ui.Button["CompletionView"]], template
         """
         await itx.response.defer(ephemeral=True)
         assert itx.message
+        await self.fetch_and_update_label(itx.client.api, itx.user.id, itx.message.id)
+        await itx.edit_original_response(view=self.view)
+
+    async def fetch_and_update_label(self, api: APIClient, user_id: int, message_id: int) -> None:
         data = UpvoteCreateDTO(
-            user_id=itx.user.id,
-            message_id=itx.message.id,
+            user_id=user_id,
+            message_id=message_id,
         )
-        data_with_job_status = await itx.client.api.upvote_submission(data)
+        data_with_job_status = await api.upvote_submission(data)
         new_count = str(data_with_job_status.upvotes)
         if new_count == "None":
             return
         self.item.label = new_count
-        await itx.edit_original_response(view=self.view)
 
 
 class CompletionView(ui.LayoutView):
@@ -515,21 +519,30 @@ class CompletionsManager(BaseService):
                 return
 
             log.debug(f"[x] [RabbitMQ] Processing message: {struct.message_id}")
-            await self.handle_upvote_forwarding(struct.message_id)
+            await self.handle_upvote_forwarding(struct)
 
         except Exception as e:
             raise e
 
-    async def handle_upvote_forwarding(self, message_id: int) -> None:
+    async def handle_upvote_forwarding(self, data: UpvoteUpdateDTO) -> None:
         """Forward a submission message to the upvote channel.
 
         Retrieves the partial message by ID from the submission channel and
         forwards it to the configured upvote channel.
 
         Args:
-            message_id: The ID of the submission message to forward.
+            data: UpvoteUpdateDTO
         """
-        partial_message = self.submission_channel.get_partial_message(message_id)
+        partial_message = self.submission_channel.get_partial_message(data.message_id)
+        message = await partial_message.fetch()
+        view = ui.LayoutView.from_message(message)
+        for c in view.walk_children():
+            log.info(c)
+            if isinstance(c, CompletionLikeButton):
+                log.info("ITS HAPPENING")
+                await c.fetch_and_update_label(self.bot.api, data.user_id, data.message_id)
+
+        await message.edit(view=view)
         await partial_message.forward(self.upvote_channel)
 
     @register_queue_handler("api.completion.submission")
