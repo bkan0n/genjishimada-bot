@@ -458,7 +458,6 @@ class PlaytestManager(BaseService):
         cog: "PlaytestCog" = self.bot.cogs["PlaytestCog"]  # pyright: ignore[reportAssignmentType]
 
         previous_view = cog.playtest_views.get(thread_id, None)
-
         view = PlaytestComponentsV2View(data=playtest_data, thread_id=thread_id)
         if previous_view:
             previous_view.stop()
@@ -492,8 +491,8 @@ class PlaytestManager(BaseService):
             difficulty_value (float): Raw difficulty value to convert and display.
         """
         label = convert_raw_difficulty_to_difficulty_all(difficulty_value)
-        await self._announce_vote_in_thread(thread_id=thread_id, voter_id=voter_id, label=label)
         await self._rebuild_view_and_plot(thread_id=thread_id)
+        await self._announce_vote_in_thread(thread_id=thread_id, voter_id=voter_id, label=label)
 
     async def remove_vote_discord_side(self, *, thread_id: int, voter_id: int) -> None:
         """Announce a removed vote and refresh the UI/plot.
@@ -502,8 +501,8 @@ class PlaytestManager(BaseService):
             thread_id (int): Playtest thread ID.
             voter_id (int): Discord user ID of the voter.
         """
-        await self._announce_vote_in_thread(thread_id=thread_id, voter_id=voter_id, label=None)
         await self._rebuild_view_and_plot(thread_id=thread_id)
+        await self._announce_vote_in_thread(thread_id=thread_id, voter_id=voter_id, label=None)
 
     @register_queue_handler("api.playtest.vote.cast")
     async def _mq_vote_cast(self, message: AbstractIncomingMessage) -> None:

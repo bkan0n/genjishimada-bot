@@ -138,22 +138,26 @@ class MapModel(MapReadDTO):
             AttributeError: If no playtest data is attached.
         """
         if self.override_finalize is True:
+            log.info("Finalizable: Override is true=True")
             return True
 
         if not self.playtest:
             raise AttributeError("This data does not have a playtest attached.")
 
         if not self.playtest.vote_count:
+            log.info("Finalizable: Vote count is 0=false")
             return False
 
         _diff = convert_raw_difficulty_to_difficulty_top(self.playtest.initial_difficulty)
         threshold = PLAYTEST_VOTE_THRESHOLD[_diff]
         if self.playtest.vote_count >= threshold:
+            log.info("Finalizable: Hit the threshold=true")
             return True
 
         if self.override_finalize in (False, None):
+            log.info("Finalizable: Override is false=false")
             return False
-
+        log.info("Finalizable: None of the above=false")
         return False
 
 
