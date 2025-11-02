@@ -1246,8 +1246,10 @@ class PlaytestComponentsV2View(discord.ui.LayoutView):
         Args:
             bot (core.Genji): Bot instance used to query the API.
         """
+        overridden = self.data.override_finalize
         data = await bot.api.get_map(playtest_thread_id=self.thread_id)
         self.data = data
+        self.data.override_finalize = overridden
 
     async def fetch_data_and_rebuild(self, bot: core.Genji) -> None:
         """Fetch fresh map data and rebuild the components.
