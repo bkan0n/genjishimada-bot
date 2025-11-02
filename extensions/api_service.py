@@ -1097,7 +1097,7 @@ class APIService:
             Response[list[CompletionLeaderboardFormattable]]: The completions leaderboard data.
         """
         r = Route("GET", "/completions/{code}", code=code)
-        return self._request(r, response_model=list[CompletionLeaderboardFormattable])
+        return self._request(r, response_model=list[CompletionLeaderboardFormattable], params={"page_size": 0})
 
     def get_completions_for_user(
         self, user_id: int, difficulty: DifficultyAll | None
