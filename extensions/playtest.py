@@ -810,12 +810,16 @@ class DifficultyRatingSelect(discord.ui.Select["PlaytestComponentsV2View"]):
             itx (GenjiItx): The interaction that triggered the select.
         """
         choice = self.values[0]
-        await itx.response.send_message(f"You voted **{choice}**. Updating...", ephemeral=True)
+        await itx.response.defer(ephemeral=True, thinking=True)
 
         assert isinstance(itx.channel, discord.Thread)
         thread_id = itx.channel.id
         user_id = itx.user.id
         code = self.view.data.code
+
+        m = await itx.client.api.get_map(code=code)
+        if user_id in (c.id for c in m.creators):
+            raise UserFacingError("Vote failed. You cannot vote for your own map.")
 
         if choice == "Remove Vote":
             try:
@@ -838,6 +842,8 @@ class DifficultyRatingSelect(discord.ui.Select["PlaytestComponentsV2View"]):
                     "Vote failed. You do not have a verified, non-completion submission associated with this map."
                 )
             raise e
+
+        await itx.edit_original_response(content=f"You voted **{choice}**. Updating...")
 
 
 class SelectOptionsTuple(NamedTuple):
