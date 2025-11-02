@@ -1,6 +1,12 @@
 name: Dev Deployment
+
 on:
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref (branch, tag, or SHA) to deploy (defaults to main)"
+        required: false
+        default: "main"
   issue_comment:
     types: [created]
 
@@ -13,12 +19,16 @@ permissions:
 
 jobs:
   dev-deploy:
-    if: ${{ github.event.issue.pull_request }}
+    # Run if manually dispatched OR if this is a comment on a PR
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && github.event.issue.pull_request) }}
     runs-on: ubuntu-latest
     environment: development
+
     steps:
+      # Only needed for the issue_comment path
       - name: branch-deploy
         id: branch-deploy
+        if: ${{ github.event_name == 'issue_comment' }}
         uses: github/branch-deploy@v11.0.0
         with:
           trigger: ".deploy"
@@ -29,10 +39,19 @@ jobs:
           allow_forks: "true"
           admins: "tylovejoy"
 
-      - name: Checkout repository
+      # Checkout for PR comment flow (uses branch-deploy's resolved SHA)
+      - name: Checkout repository (PR comment)
+        if: ${{ github.event_name == 'issue_comment' }}
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.branch-deploy.outputs.sha }}
+
+      # Checkout for manual dispatch flow (uses input ref; defaults to main)
+      - name: Checkout repository (manual dispatch)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Set up SSH key
         run: |
@@ -54,9 +73,7 @@ jobs:
       - name: Deploy to Remote Dev Server
         run: |
           echo "Deploying to Dev Server..."
-
           docker compose -f docker-compose.dev.yml up -d --build --no-deps --force-recreate
-
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
