@@ -581,10 +581,7 @@ class LegacyRecordNewsfeedBuilder(BaseNewsfeedBuilder[NewsfeedLegacyRecord]):
             reason=payload.reason,
         )
         content = self._format(form)
-        expl = (
-            "\n### Submissions for this map have been marked as legacy due to breaking changes.\n"
-            "- Use `/legacy_completions` to review converted entries."
-        )
+        expl = "\n### Submissions for this map have been marked as legacy due to breaking changes.\n"
         return NewsfeedComponentView(
             title=f"{payload.code} records converted to completions",
             content=content + expl,
