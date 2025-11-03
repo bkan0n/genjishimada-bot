@@ -619,7 +619,6 @@ class CompletionsService(BaseService):
         """
         _data = await self.bot.api.get_completion_submission(data.completion_id)
         completion_data = msgspec.convert(_data, CompletionPostVerificationModel, from_attributes=True)
-        view = CompletionView(completion_data)
 
         guild = self.bot.get_guild(self.bot.config.guild)
         assert guild
@@ -629,6 +628,7 @@ class CompletionsService(BaseService):
         should_notify = await self.bot.notifications.should_notify(
             completion_data.user_id, Notification.DM_ON_VERIFICATION
         )
+        view = CompletionView(completion_data, verifier_name=verifier_name)
         if data.verified:
             message = await self.submission_channel.send(view=view)
             await self.bot.api.edit_completion(data.completion_id, data=CompletionPatchDTO(message_id=message.id))
