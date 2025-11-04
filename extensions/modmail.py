@@ -194,9 +194,9 @@ class ModmailCog(BaseCog):
         """
         await ctx.channel.send(
             content=(
-                "# Do you require assistance from a Sensei?\n"
+                "# Do you require private assistance from a Sensei?\n"
                 "### Press the button below for any of the following: \n"
-                "- Bugs found regarding:\n"
+                "- **High priority** bugs found regarding:\n"
                 "  - GenjiBot\n"
                 "  - Official Genji Parkour Framework\n"
                 "- Other users\n"
