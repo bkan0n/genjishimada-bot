@@ -839,9 +839,8 @@ class DifficultyRatingSelect(discord.ui.Select["PlaytestComponentsV2View"]):
         assert isinstance(itx.channel, discord.Thread)
         thread_id = itx.channel.id
         user_id = itx.user.id
-        code = self.view.data.code
 
-        m = await itx.client.api.get_map(code=code)
+        m = await itx.client.api.get_map(playtest_thread_id=thread_id)
         if user_id in (c.id for c in m.creators):
             raise UserFacingError("Vote failed. You cannot vote for your own map.")
 
@@ -856,7 +855,6 @@ class DifficultyRatingSelect(discord.ui.Select["PlaytestComponentsV2View"]):
 
         vote = PlaytestVote(
             difficulty=DIFFICULTY_MIDPOINTS[choice],  # type: ignore[arg-type]
-            code=code,
         )
         try:
             await itx.client.api.cast_playtest_vote(thread_id, user_id, vote=vote)
