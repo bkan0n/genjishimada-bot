@@ -358,7 +358,7 @@ class ChangeRequestArchiveMapButton(
         Args:
             itx (GenjiItx): The interaction that triggered the button.
         """
-        await itx.edit_original_response(content="Requesting map archive.")
+        await itx.response.send_message(content="Requesting map archive.")
         assert isinstance(itx.channel, discord.Thread)
         await itx.channel.send(
             f"<@&{itx.client.config.roles.mentionable.modmail}>\n\n{itx.user.mention} is requesting map archive.",
@@ -425,7 +425,7 @@ class ChangeRequestConfirmChangesButton(
         Args:
             itx (GenjiItx): The interaction that triggered the button.
         """
-        await itx.edit_original_response(content="Confirming changes have been made.")
+        await itx.response.send_message(content="Confirming changes have been made.")
         assert isinstance(itx.channel, discord.Thread)
         await itx.channel.send(
             f"<@&{itx.client.config.roles.mentionable.modmail}>\n\n{itx.user.mention} "
@@ -493,7 +493,7 @@ class ChangeRequestDenyChangesButton(
         Args:
             itx (GenjiItx): The interaction that triggered the button.
         """
-        await itx.edit_original_response(content="Denying changes.")
+        await itx.response.send_message(content="Denying changes.")
         assert isinstance(itx.channel, discord.Thread)
         await itx.channel.send(
             f"<@&{itx.client.config.roles.mentionable.modmail}>\n\n"
