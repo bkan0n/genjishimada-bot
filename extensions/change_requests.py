@@ -561,6 +561,7 @@ class ChangeRequestSubmitButton(ui.Button["ChangeRequestConfirmationView"]):
         """
         await itx.response.defer(ephemeral=True)
         self.view.stop()
+
         assert itx.guild
         channel = itx.guild.get_channel(itx.client.config.channels.help.change_requests)
         assert isinstance(channel, discord.ForumChannel)
