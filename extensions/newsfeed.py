@@ -771,4 +771,5 @@ class NewsfeedService:
             await self._publish_event(event)
 
         except Exception:
+            await self._bot.api.delete_claimed_idempotency(data)
             log.exception("Failed to process newsfeed create message.")

@@ -568,6 +568,7 @@ class CompletionsService(BaseService):
             await self._handle_verification_queue_message(struct.completion_id)
 
         except Exception as e:
+            await self.bot.api.delete_claimed_idempotency(data)
             raise e
 
     @register_queue_handler("api.completion.verification")
@@ -594,6 +595,7 @@ class CompletionsService(BaseService):
             await self._handle_verification_status_change(struct)
 
         except Exception as e:
+            await self.bot.api.delete_claimed_idempotency(data)
             raise e
 
     async def _handle_verification_queue_message(self, record_id: int) -> None:

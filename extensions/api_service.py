@@ -1579,6 +1579,11 @@ class APIService:
         r = Route("POST", "/internal/idempotency/claim")
         return self._request(r, response_model=ClaimResponse, data=data)
 
+    def delete_claimed_idempotency(self, data: ClaimRequest) -> Response[None]:
+        """Delete a claimed idempotency key for a queue message action."""
+        r = Route("DELETE", "/internal/idempotency/claim")
+        return self._request(r, data=data)
+
 
 async def setup(bot: core.Genji) -> None:
     """Set up the HTTP client extension."""
