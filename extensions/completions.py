@@ -45,6 +45,7 @@ from genjipk_sdk.models.completions import (
     SuspiciousFlag,
     UpvoteCreateDTO,
 )
+from genjipk_sdk.models.jobs import ClaimRequest
 from genjipk_sdk.models.users import RankDetailReadDTO
 from genjipk_sdk.utilities import DIFFICULTY_TO_RANK_MAP, DifficultyAll
 from genjipk_sdk.utilities._types import OverwatchCode
@@ -556,6 +557,13 @@ class CompletionsService(BaseService):
                 log.debug("Pytest message received.")
                 return
 
+            assert message.message_id
+            data = ClaimRequest(message.message_id)
+            res = await self.bot.api.claim_idempotency(data)
+            if not res.claimed:
+                log.debug("[Idempotency] Duplicate: %s", message.message_id)
+                return
+
             log.debug(f"[x] [RabbitMQ] Processing message: {struct.completion_id}")
             await self._handle_verification_queue_message(struct.completion_id)
 
@@ -573,6 +581,13 @@ class CompletionsService(BaseService):
             struct = msgspec.json.decode(message.body, type=MessageQueueVerificationChange)
             if message.headers.get("x-pytest-enabled", False):
                 log.debug("Pytest message received.")
+                return
+
+            assert message.message_id
+            data = ClaimRequest(message.message_id)
+            res = await self.bot.api.claim_idempotency(data)
+            if not res.claimed:
+                log.debug("[Idempotency] Duplicate: %s", message.message_id)
                 return
 
             log.debug(f"[x] [RabbitMQ] Processing message: {struct.completion_id}")

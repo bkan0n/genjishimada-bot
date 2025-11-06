@@ -66,6 +66,8 @@ from genjipk_sdk.models.completions import (
     UpvoteCreateDTO,
 )
 from genjipk_sdk.models.jobs import (
+    ClaimRequest,
+    ClaimResponse,
     CreateMapReturnDTO,
     CreatePublishNewsfeedReturnDTO,
     JobStatus,
@@ -1564,13 +1566,18 @@ class APIService:
 
     def reset_playtest(self, thread_id: int, data: PlaytestResetCreate) -> Response[JobStatus]:
         """Reset playtest submission."""
-        r = Route("POST", f"/maps/playtests/{thread_id}/reset", thread_id=thread_id)
+        r = Route("POST", "/maps/playtests/{thread_id}/reset", thread_id=thread_id)
         return self._request(r, response_model=JobStatus, data=data)
 
     def get_upvotes_from_message_id(self, message_id: int) -> Response[int]:
         """Get upvotes count."""
-        r = Route("GET", f"/completions/upvoting/{message_id}", message_id=message_id)
+        r = Route("GET", "/completions/upvoting/{message_id}", message_id=message_id)
         return self._request(r, response_model=int)
+
+    def claim_idempotency(self, data: ClaimRequest) -> Response[ClaimResponse]:
+        """Claim an idempotency key for a queue message action."""
+        r = Route("POST", "/internal/idempotency/claim")
+        return self._request(r, response_model=ClaimResponse, data=data)
 
 
 async def setup(bot: core.Genji) -> None:
