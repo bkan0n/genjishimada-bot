@@ -358,9 +358,7 @@ class ChangeRequestArchiveMapButton(
         Args:
             itx (GenjiItx): The interaction that triggered the button.
         """
-        await itx.edit_original_response(content="Requesting map archive.")
-        assert isinstance(itx.channel, discord.Thread)
-        await itx.channel.send(
+        await itx.response.send_message(
             f"<@&{itx.client.config.roles.mentionable.modmail}>\n\n{itx.user.mention} is requesting map archive.",
             view=ChangeRequestModCloseView(),
         )
@@ -425,9 +423,7 @@ class ChangeRequestConfirmChangesButton(
         Args:
             itx (GenjiItx): The interaction that triggered the button.
         """
-        await itx.edit_original_response(content="Confirming changes have been made.")
-        assert isinstance(itx.channel, discord.Thread)
-        await itx.channel.send(
+        await itx.response.send_message(
             f"<@&{itx.client.config.roles.mentionable.modmail}>\n\n{itx.user.mention} "
             "has confirmed changes have been made.",
             view=ChangeRequestModCloseView(),
@@ -493,9 +489,7 @@ class ChangeRequestDenyChangesButton(
         Args:
             itx (GenjiItx): The interaction that triggered the button.
         """
-        await itx.edit_original_response(content="Denying changes.")
-        assert isinstance(itx.channel, discord.Thread)
-        await itx.channel.send(
+        await itx.response.send_message(
             f"<@&{itx.client.config.roles.mentionable.modmail}>\n\n"
             f"{itx.user.mention} is denying changes as non applicable.",
             view=ChangeRequestModCloseView(),
@@ -561,6 +555,7 @@ class ChangeRequestSubmitButton(ui.Button["ChangeRequestConfirmationView"]):
         """
         await itx.response.defer(ephemeral=True)
         self.view.stop()
+
         assert itx.guild
         channel = itx.guild.get_channel(itx.client.config.channels.help.change_requests)
         assert isinstance(channel, discord.ForumChannel)

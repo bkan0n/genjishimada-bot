@@ -31,6 +31,7 @@ from genjipk_sdk.models import (
     PlaytestVoteCastMQ,
     PlaytestVoteRemovedMQ,
 )
+from genjipk_sdk.models.jobs import ClaimRequest
 from genjipk_sdk.utilities import (
     DIFFICULTY_MIDPOINTS,
     DIFFICULTY_RANGES_ALL,
@@ -170,6 +171,13 @@ class PlaytestService(BaseService):
             struct = msgspec.json.decode(message.body, type=MessageQueueCreatePlaytest)
             if message.headers.get("x-pytest-enabled", False):
                 log.debug("Pytest message received.")
+                return
+
+            assert message.message_id
+            data = ClaimRequest(message.message_id)
+            res = await self.bot.api.claim_idempotency(data)
+            if not res.claimed:
+                log.debug("[Idempotency] Duplicate: %s", message.message_id)
                 return
 
             log.debug(f"[x] [RabbitMQ] Processing message: {struct.code}")
@@ -518,6 +526,7 @@ class PlaytestService(BaseService):
         """
         if message.headers.get("x-pytest-enabled", False):
             return
+
         s = msgspec.json.decode(message.body, type=PlaytestVoteCastMQ)
         await self._apply_vote_discord_side(
             thread_id=s.thread_id,
@@ -549,6 +558,14 @@ class PlaytestService(BaseService):
         """
         if message.headers.get("x-pytest-enabled", False):
             return
+
+        assert message.message_id
+        data = ClaimRequest(message.message_id)
+        res = await self.bot.api.claim_idempotency(data)
+        if not res.claimed:
+            log.debug("[Idempotency] Duplicate: %s", message.message_id)
+            return
+
         s = msgspec.json.decode(message.body, type=PlaytestApproveMQ)
 
         await self._approve_playtest(
@@ -568,6 +585,14 @@ class PlaytestService(BaseService):
         """
         if message.headers.get("x-pytest-enabled", False):
             return
+
+        assert message.message_id
+        data = ClaimRequest(message.message_id)
+        res = await self.bot.api.claim_idempotency(data)
+        if not res.claimed:
+            log.debug("[Idempotency] Duplicate: %s", message.message_id)
+            return
+
         s = msgspec.json.decode(message.body, type=PlaytestForceAcceptMQ)
         log.debug(f"{s=}")
         playtest_data = await self.bot.api.get_playtest(s.thread_id)
@@ -589,6 +614,14 @@ class PlaytestService(BaseService):
         """
         if message.headers.get("x-pytest-enabled", False):
             return
+
+        assert message.message_id
+        data = ClaimRequest(message.message_id)
+        res = await self.bot.api.claim_idempotency(data)
+        if not res.claimed:
+            log.debug("[Idempotency] Duplicate: %s", message.message_id)
+            return
+
         s = msgspec.json.decode(message.body, type=PlaytestForceDenyMQ)
         playtest_data = await self.bot.api.get_playtest(s.thread_id)
         map_data = await self.bot.api.get_map(code=playtest_data.code)
@@ -609,6 +642,14 @@ class PlaytestService(BaseService):
         """
         if message.headers.get("x-pytest-enabled", False):
             return
+
+        assert message.message_id
+        data = ClaimRequest(message.message_id)
+        res = await self.bot.api.claim_idempotency(data)
+        if not res.claimed:
+            log.debug("[Idempotency] Duplicate: %s", message.message_id)
+            return
+
         s = msgspec.json.decode(message.body, type=PlaytestResetMQ)
         playtest_data = await self.bot.api.get_playtest(s.thread_id)
         map_data = await self.bot.api.get_map(code=playtest_data.code)

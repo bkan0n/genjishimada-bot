@@ -19,6 +19,7 @@ from discord.ui import (
 )
 from discord.utils import maybe_coroutine
 from genjipk_sdk.models import NewsfeedEvent, NewsfeedQueueMessage
+from genjipk_sdk.models.jobs import ClaimRequest
 from genjipk_sdk.models.newsfeed import (
     NewsfeedAnnouncement,
     NewsfeedArchive,
@@ -734,6 +735,13 @@ class NewsfeedService:
 
             if message.headers.get("x-pytest-enabled"):
                 log.debug("[RabbitMQ] Pytest message received; skipping publish.")
+                return
+
+            assert message.message_id
+            data = ClaimRequest(message.message_id)
+            res = await self._bot.api.claim_idempotency(data)
+            if not res.claimed:
+                log.debug("[Idempotency] Duplicate: %s", message.message_id)
                 return
 
             log.debug("[RabbitMQ] Processing newsfeed id: %s", qmsg.newsfeed_id)
