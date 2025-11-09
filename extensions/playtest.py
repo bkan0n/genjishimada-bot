@@ -185,6 +185,7 @@ class PlaytestService(BaseService):
             model = await self.bot.api.get_partial_map(struct.code)
             await self._add_playtest(model, struct.playtest_id)
         except Exception as e:
+            await self.bot.api.delete_claimed_idempotency(data)
             raise e
 
     async def _set_playtesting_status(self, *, code: str, status: PlaytestStatus) -> None:
@@ -556,25 +557,29 @@ class PlaytestService(BaseService):
         Args:
             message (AbstractIncomingMessage): MQ message with `PlaytestApprove`.
         """
-        if message.headers.get("x-pytest-enabled", False):
-            return
+        try:
+            if message.headers.get("x-pytest-enabled", False):
+                return
 
-        assert message.message_id
-        data = ClaimRequest(message.message_id)
-        res = await self.bot.api.claim_idempotency(data)
-        if not res.claimed:
-            log.debug("[Idempotency] Duplicate: %s", message.message_id)
-            return
+            assert message.message_id
+            data = ClaimRequest(message.message_id)
+            res = await self.bot.api.claim_idempotency(data)
+            if not res.claimed:
+                log.debug("[Idempotency] Duplicate: %s", message.message_id)
+                return
 
-        s = msgspec.json.decode(message.body, type=PlaytestApproveMQ)
+            s = msgspec.json.decode(message.body, type=PlaytestApproveMQ)
 
-        await self._approve_playtest(
-            code=s.code,
-            thread_id=s.thread_id,
-            verifier_id=s.verifier_id,
-            difficulty=s.difficulty,
-            primary_creator_id=s.primary_creator_id,
-        )
+            await self._approve_playtest(
+                code=s.code,
+                thread_id=s.thread_id,
+                verifier_id=s.verifier_id,
+                difficulty=s.difficulty,
+                primary_creator_id=s.primary_creator_id,
+            )
+        except Exception as e:
+            await self.bot.api.delete_claimed_idempotency(data)
+            raise e
 
     @register_queue_handler("api.playtest.force_accept")
     async def _process_force_accept_playtest(self, message: AbstractIncomingMessage) -> None:
@@ -583,27 +588,31 @@ class PlaytestService(BaseService):
         Args:
             message (AbstractIncomingMessage): MQ message with `PlaytestForceAccept`.
         """
-        if message.headers.get("x-pytest-enabled", False):
-            return
+        try:
+            if message.headers.get("x-pytest-enabled", False):
+                return
 
-        assert message.message_id
-        data = ClaimRequest(message.message_id)
-        res = await self.bot.api.claim_idempotency(data)
-        if not res.claimed:
-            log.debug("[Idempotency] Duplicate: %s", message.message_id)
-            return
+            assert message.message_id
+            data = ClaimRequest(message.message_id)
+            res = await self.bot.api.claim_idempotency(data)
+            if not res.claimed:
+                log.debug("[Idempotency] Duplicate: %s", message.message_id)
+                return
 
-        s = msgspec.json.decode(message.body, type=PlaytestForceAcceptMQ)
-        log.debug(f"{s=}")
-        playtest_data = await self.bot.api.get_playtest(s.thread_id)
-        map_data = await self.bot.api.get_map(code=playtest_data.code)
-        await self._force_accept_playtest(
-            code=map_data.code,
-            thread_id=s.thread_id,
-            difficulty=s.difficulty,
-            verifier_id=s.verifier_id,
-            notify_primary_creator_id=map_data.primary_creator_id,
-        )
+            s = msgspec.json.decode(message.body, type=PlaytestForceAcceptMQ)
+            log.debug(f"{s=}")
+            playtest_data = await self.bot.api.get_playtest(s.thread_id)
+            map_data = await self.bot.api.get_map(code=playtest_data.code)
+            await self._force_accept_playtest(
+                code=map_data.code,
+                thread_id=s.thread_id,
+                difficulty=s.difficulty,
+                verifier_id=s.verifier_id,
+                notify_primary_creator_id=map_data.primary_creator_id,
+            )
+        except Exception as e:
+            await self.bot.api.delete_claimed_idempotency(data)
+            raise e
 
     @register_queue_handler("api.playtest.force_deny")
     async def _process_force_deny_playtest(self, message: AbstractIncomingMessage) -> None:
@@ -612,26 +621,30 @@ class PlaytestService(BaseService):
         Args:
             message (AbstractIncomingMessage): MQ message with `PlaytestForceDeny`.
         """
-        if message.headers.get("x-pytest-enabled", False):
-            return
+        try:
+            if message.headers.get("x-pytest-enabled", False):
+                return
 
-        assert message.message_id
-        data = ClaimRequest(message.message_id)
-        res = await self.bot.api.claim_idempotency(data)
-        if not res.claimed:
-            log.debug("[Idempotency] Duplicate: %s", message.message_id)
-            return
+            assert message.message_id
+            data = ClaimRequest(message.message_id)
+            res = await self.bot.api.claim_idempotency(data)
+            if not res.claimed:
+                log.debug("[Idempotency] Duplicate: %s", message.message_id)
+                return
 
-        s = msgspec.json.decode(message.body, type=PlaytestForceDenyMQ)
-        playtest_data = await self.bot.api.get_playtest(s.thread_id)
-        map_data = await self.bot.api.get_map(code=playtest_data.code)
-        await self._force_deny_playtest(
-            code=map_data.code,
-            thread_id=s.thread_id,
-            verifier_id=s.verifier_id,
-            reason=s.reason,
-            notify_primary_creator_id=map_data.primary_creator_id,
-        )
+            s = msgspec.json.decode(message.body, type=PlaytestForceDenyMQ)
+            playtest_data = await self.bot.api.get_playtest(s.thread_id)
+            map_data = await self.bot.api.get_map(code=playtest_data.code)
+            await self._force_deny_playtest(
+                code=map_data.code,
+                thread_id=s.thread_id,
+                verifier_id=s.verifier_id,
+                reason=s.reason,
+                notify_primary_creator_id=map_data.primary_creator_id,
+            )
+        except Exception as e:
+            await self.bot.api.delete_claimed_idempotency(data)
+            raise e
 
     @register_queue_handler("api.playtest.reset")
     async def _process_reset_playtest(self, message: AbstractIncomingMessage) -> None:
@@ -640,28 +653,32 @@ class PlaytestService(BaseService):
         Args:
             message (AbstractIncomingMessage): MQ message with `PlaytestReset`.
         """
-        if message.headers.get("x-pytest-enabled", False):
-            return
+        try:
+            if message.headers.get("x-pytest-enabled", False):
+                return
 
-        assert message.message_id
-        data = ClaimRequest(message.message_id)
-        res = await self.bot.api.claim_idempotency(data)
-        if not res.claimed:
-            log.debug("[Idempotency] Duplicate: %s", message.message_id)
-            return
+            assert message.message_id
+            data = ClaimRequest(message.message_id)
+            res = await self.bot.api.claim_idempotency(data)
+            if not res.claimed:
+                log.debug("[Idempotency] Duplicate: %s", message.message_id)
+                return
 
-        s = msgspec.json.decode(message.body, type=PlaytestResetMQ)
-        playtest_data = await self.bot.api.get_playtest(s.thread_id)
-        map_data = await self.bot.api.get_map(code=playtest_data.code)
-        await self._reset_playtest_votes_and_completions(
-            code=map_data.code,
-            thread_id=s.thread_id,
-            verifier_id=s.verifier_id,
-            reason=s.reason,
-            remove_votes=s.remove_votes,
-            remove_completions=s.remove_completions,
-            notify_primary_creator_id=map_data.primary_creator_id,
-        )
+            s = msgspec.json.decode(message.body, type=PlaytestResetMQ)
+            playtest_data = await self.bot.api.get_playtest(s.thread_id)
+            map_data = await self.bot.api.get_map(code=playtest_data.code)
+            await self._reset_playtest_votes_and_completions(
+                code=map_data.code,
+                thread_id=s.thread_id,
+                verifier_id=s.verifier_id,
+                reason=s.reason,
+                remove_votes=s.remove_votes,
+                remove_completions=s.remove_completions,
+                notify_primary_creator_id=map_data.primary_creator_id,
+            )
+        except Exception as e:
+            await self.bot.api.delete_claimed_idempotency(data)
+            raise e
 
 
 class ModActionsDifficultyRatingSelect(discord.ui.Select):

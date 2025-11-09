@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Callable, Literal, cast
 
-from discord import ButtonStyle, Member, app_commands
-from genjipk_sdk.models import MapPatchDTO, Medals, QualityValueDTO
+from discord import Member, app_commands
+from genjipk_sdk.models import MapPatchDTO, Medals, QualityValueDTO, SendToPlaytestDTO
 from genjipk_sdk.utilities import DifficultyAll
 from genjipk_sdk.utilities._types import (
     MapCategory,
@@ -209,17 +209,24 @@ class ModeratorCog(BaseCog):
         if not view.confirmed:
             return
 
-        playtesting = cast("PlaytestStatus", view.playtest_select.values[0]) if view.playtest_select.values else UNSET
+        playtesting = (
+            cast("PlaytestStatus", view.playtest_status_select.values[0])
+            if view.playtest_status_select.values
+            else UNSET
+        )
 
         await self.bot.api.edit_map(
             code,
             MapPatchDTO(
-                hidden=view.hidden_button.style == ButtonStyle.green,
-                official=view.official_button.style == ButtonStyle.green,
-                archived=view.archived_button == ButtonStyle.green,
+                hidden=view.hidden_button.enabled,
+                official=view.official_button.enabled,
+                archived=view.archived_button.enabled,
                 playtesting=playtesting,
             ),
         )
+        if view.send_to_playtest_button.enabled:
+            playtesting_difficulty = cast(DifficultyAll, view.playtest_difficulty_select.values[0])
+            await self.bot.api.send_map_to_playtest(data.code, SendToPlaytestDTO(playtesting_difficulty))
 
     @map.command(name="edit-difficulty")
     async def edit_difficulty(
