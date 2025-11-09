@@ -140,3 +140,6 @@ class ModStatusView(BaseView):
             ),
         )
         self.add_item(container)
+
+    async def confirm_callback(self) -> None:
+        """Dummy confirmation callback."""
