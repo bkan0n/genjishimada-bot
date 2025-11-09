@@ -106,7 +106,7 @@ class ModPlaytestStatusSelect(ui.Select):
         """
         for option in self.options:
             option.default = option.value in self.values
-            await itx.response.edit_message(view=self.view)
+        await itx.response.edit_message(view=self.view)
 
 
 class ModStatusView(BaseView):
