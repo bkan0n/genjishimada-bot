@@ -118,6 +118,7 @@ class ModStatusView(BaseView):
                     ),
                     accessory=self.playtest_button,
                 ),
+                ui.ActionRow(self.playtest_difficulty_select),
             )
             if self._data.playtesting
             else ()
