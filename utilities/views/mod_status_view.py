@@ -62,10 +62,8 @@ class ModPlaytestSendToPlaytestButton(ui.Button["ModStatusView"]):
         self.enabled = not self.enabled
         self._rebuild()
         assert self.view
-        self.view.playtest_difficulty_select.disabled = self.style == ButtonStyle.green
-        self.view.confirmation_button.disabled = (
-            self.style == ButtonStyle.green and not self.view.playtest_difficulty_select.values
-        )
+        self.view.playtest_difficulty_select.disabled = not self.enabled
+        self.view.confirmation_button.disabled = not (self.enabled or self.view.playtest_difficulty_select.values)
         await itx.response.edit_message(view=self.view)
 
     def _rebuild(self) -> None:
@@ -88,9 +86,7 @@ class PlaytestDifficultySelect(ui.Select["ModStatusView"]):
         for option in self.options:
             option.default = option.value in self.values
         assert self.view
-        self.view.confirmation_button.disabled = (
-            self.view.playtest_button.style == ButtonStyle.green and not self.values
-        )
+        self.view.confirmation_button.disabled = not (self.view.playtest_button.enabled or self.values)
         await itx.response.edit_message(view=self.view)
 
 
