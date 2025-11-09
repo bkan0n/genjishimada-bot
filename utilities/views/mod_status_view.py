@@ -50,7 +50,7 @@ class ModPlaytestSendToPlaytestButton(ui.Button["ModStatusView"]):
             enabled (PlaytestStatus): The currently selected playtest status.
         """
         self._enabled = False
-        super().__init__(style=ButtonStyle.green, label="Will not send to playtest")
+        super().__init__(style=ButtonStyle.red, label="Send to playtest DISABLED")
         self._rebuild()
 
     async def callback(self, itx: GenjiItx) -> None:
@@ -63,14 +63,14 @@ class ModPlaytestSendToPlaytestButton(ui.Button["ModStatusView"]):
         self._rebuild()
         assert self.view
         self.view.confirmation_button.disabled = (
-            self.style == ButtonStyle.red and not self.view.playtest_difficulty_select.values
+            self.style == ButtonStyle.green and not self.view.playtest_difficulty_select.values
         )
         await itx.response.edit_message(view=self.view)
 
     def _rebuild(self) -> None:
         """Rebuild the button label and style based on the current state."""
-        self.label = "Will not send to playtest" if not self._enabled else "Will send to playtest"
-        self.style = ButtonStyle.green if not self._enabled else ButtonStyle.red
+        self.label = "Send to playtest ENABLED" if self._enabled else "Send to playtest DISABLED"
+        self.style = ButtonStyle.green if self._enabled else ButtonStyle.red
 
 
 class PlaytestDifficultySelect(ui.Select["ModStatusView"]):
@@ -86,7 +86,9 @@ class PlaytestDifficultySelect(ui.Select["ModStatusView"]):
         for option in self.options:
             option.default = option.value in self.values
         assert self.view
-        self.view.confirmation_button.disabled = self.view.playtest_button.style == ButtonStyle.red and not self.values
+        self.view.confirmation_button.disabled = (
+            self.view.playtest_button.style == ButtonStyle.green and not self.values
+        )
         await itx.response.edit_message(view=self.view)
 
 
@@ -114,7 +116,7 @@ class ModStatusView(BaseView):
             (
                 ui.Section(
                     ui.TextDisplay(
-                        "Send map to playtest.\nThis will convert all records for this map into legacy records."
+                        "**Send map to playtest**.\nThis will convert all records for this map into legacy records."
                     ),
                     accessory=self.playtest_button,
                 ),
