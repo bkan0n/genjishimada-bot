@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Callable, Literal, cast
 
-from discord import ButtonStyle, Member, app_commands
+from discord import Member, app_commands
 from genjipk_sdk.models import MapPatchDTO, Medals, QualityValueDTO, SendToPlaytestDTO
 from genjipk_sdk.utilities import DifficultyAll
 from genjipk_sdk.utilities._types import (
@@ -210,12 +210,12 @@ class ModeratorCog(BaseCog):
         await self.bot.api.edit_map(
             code,
             MapPatchDTO(
-                hidden=view.hidden_button.style == ButtonStyle.green,
-                official=view.official_button.style == ButtonStyle.green,
-                archived=view.archived_button == ButtonStyle.green,
+                hidden=view.hidden_button.enabled,
+                official=view.official_button.enabled,
+                archived=view.archived_button.enabled,
             ),
         )
-        if view.playtest_button.style == ButtonStyle.red:
+        if view.playtest_button.enabled:
             playtesting_difficulty = cast(DifficultyAll, view.playtest_difficulty_select.values[0])
             await self.bot.api.send_map_to_playtest(data.code, SendToPlaytestDTO(playtesting_difficulty))
 

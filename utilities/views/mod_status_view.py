@@ -20,7 +20,7 @@ class ModStatusButton(ui.Button):
             enabled (bool): Whether the status is currently enabled.
             status (Literal): The map status this button controls.
         """
-        self._enabled = enabled
+        self.enabled = enabled
         self._status = label
         super().__init__()
         self._rebuild()
@@ -31,15 +31,15 @@ class ModStatusButton(ui.Button):
         Args:
             itx (GenjiItx): The interaction triggered by the button click.
         """
-        self._enabled = not self._enabled
+        self.enabled = not self.enabled
         self._rebuild()
         await itx.response.edit_message(view=self.view)
 
     def _rebuild(self) -> None:
         """Rebuild the button label and style based on the current state."""
         name = self._status.capitalize()
-        self.label = name if self._enabled else f"Not {name}"
-        self.style = ButtonStyle.green if self._enabled else ButtonStyle.red
+        self.label = name if self.enabled else f"Not {name}"
+        self.style = ButtonStyle.green if self.enabled else ButtonStyle.red
 
 
 class ModPlaytestSendToPlaytestButton(ui.Button["ModStatusView"]):
@@ -49,7 +49,7 @@ class ModPlaytestSendToPlaytestButton(ui.Button["ModStatusView"]):
         Args:
             enabled (PlaytestStatus): The currently selected playtest status.
         """
-        self._enabled = False
+        self.enabled = False
         super().__init__(style=ButtonStyle.red, label="Send to playtest DISABLED")
         self._rebuild()
 
@@ -59,9 +59,10 @@ class ModPlaytestSendToPlaytestButton(ui.Button["ModStatusView"]):
         Args:
             itx (GenjiItx): The interaction triggered by the dropdown change.
         """
-        self._enabled = not self._enabled
+        self.enabled = not self.enabled
         self._rebuild()
         assert self.view
+        self.view.playtest_difficulty_select.disabled = self.style == ButtonStyle.green
         self.view.confirmation_button.disabled = (
             self.style == ButtonStyle.green and not self.view.playtest_difficulty_select.values
         )
@@ -69,16 +70,17 @@ class ModPlaytestSendToPlaytestButton(ui.Button["ModStatusView"]):
 
     def _rebuild(self) -> None:
         """Rebuild the button label and style based on the current state."""
-        self.label = "Send to playtest ENABLED" if self._enabled else "Send to playtest DISABLED"
-        self.style = ButtonStyle.green if self._enabled else ButtonStyle.red
+        self.label = "Send to playtest ENABLED" if self.enabled else "Send to playtest DISABLED"
+        self.style = ButtonStyle.green if self.enabled else ButtonStyle.red
 
 
 class PlaytestDifficultySelect(ui.Select["ModStatusView"]):
-    def __init__(self) -> None:
+    def __init__(self, disabled: bool = True) -> None:
         """Initialize PlaytestDifficultySelect."""
         super().__init__(
             placeholder="Select the difficulty for sending back to playtest.",
             options=[SelectOption(label=d, value=d) for d in get_args(DifficultyAll)],
+            disabled=disabled,
         )
 
     async def callback(self, itx: GenjiItx) -> None:
