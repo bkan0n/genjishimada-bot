@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Literal, get_args
 
 from discord import ButtonStyle, SelectOption, ui
 from genjipk_sdk.utilities import DifficultyAll
+from genjipk_sdk.utilities._types import PlaytestStatus
 
 from ..base import BaseView, ConfirmationButton, ConfirmationCancelButton
 
@@ -86,8 +87,26 @@ class PlaytestDifficultySelect(ui.Select["ModStatusView"]):
         for option in self.options:
             option.default = option.value in self.values
         assert self.view
-        self.view.confirmation_button.disabled = not (self.view.playtest_button.enabled or self.values)
+        self.view.confirmation_button.disabled = not (self.view.send_to_playtest_button.enabled or self.values)
         await itx.response.edit_message(view=self.view)
+
+
+class ModPlaytestStatusSelect(ui.Select):
+    def __init__(self, initial_value: PlaytestStatus) -> None:
+        """Initialize the playtest status dropdown selector."""
+        super().__init__(
+            options=[SelectOption(label=s, value=s, default=s == initial_value) for s in get_args(PlaytestStatus)],
+        )
+
+    async def callback(self, itx: GenjiItx) -> None:
+        """Update the selected playtest status and refresh the view.
+
+        Args:
+            itx (GenjiItx): The interaction triggered by the dropdown change.
+        """
+        for option in self.options:
+            option.default = option.value in self.values
+            await itx.response.edit_message(view=self.view)
 
 
 class ModStatusView(BaseView):
@@ -102,7 +121,8 @@ class ModStatusView(BaseView):
         self.hidden_button = ModStatusButton(self._data.hidden, "hidden")
         self.official_button = ModStatusButton(self._data.official, "official")
         self.archived_button = ModStatusButton(self._data.archived, "archived")
-        self.playtest_button = ModPlaytestSendToPlaytestButton()
+        self.send_to_playtest_button = ModPlaytestSendToPlaytestButton()
+        self.playtest_status_select = ModPlaytestStatusSelect(self._data.playtesting)
         self.playtest_difficulty_select = PlaytestDifficultySelect()
         self.confirmation_button = ConfirmationButton()
         super().__init__()
@@ -116,7 +136,7 @@ class ModStatusView(BaseView):
                     ui.TextDisplay(
                         "**Send map to playtest**.\nThis will convert all records for this map into legacy records."
                     ),
-                    accessory=self.playtest_button,
+                    accessory=self.send_to_playtest_button,
                 ),
                 ui.ActionRow(self.playtest_difficulty_select),
             )
@@ -131,6 +151,8 @@ class ModStatusView(BaseView):
             ui.Section(ui.TextDisplay("Edit the **Hidden** status."), accessory=self.hidden_button),
             ui.Section(ui.TextDisplay("Edit the **Official** status."), accessory=self.official_button),
             ui.Section(ui.TextDisplay("Edit the **Archived** status."), accessory=self.archived_button),
+            ui.TextDisplay("Edit the **Playtesting** status."),
+            ui.ActionRow(self.playtest_status_select),
             *playtest_section,
             ui.Separator(),
             ui.TextDisplay(f"# {self._end_time_string}"),

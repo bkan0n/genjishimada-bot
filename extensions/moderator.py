@@ -10,8 +10,10 @@ from genjipk_sdk.utilities._types import (
     Mechanics,
     OverwatchCode,
     OverwatchMap,
+    PlaytestStatus,
     Restrictions,
 )
+from msgspec import UNSET
 
 from utilities import transformers
 from utilities.base import BaseCog, ConfirmationView
@@ -207,15 +209,22 @@ class ModeratorCog(BaseCog):
         if not view.confirmed:
             return
 
+        playtesting = (
+            cast("PlaytestStatus", view.playtest_status_select.values[0])
+            if view.playtest_status_select.values
+            else UNSET
+        )
+
         await self.bot.api.edit_map(
             code,
             MapPatchDTO(
                 hidden=view.hidden_button.enabled,
                 official=view.official_button.enabled,
                 archived=view.archived_button.enabled,
+                playtesting=playtesting,
             ),
         )
-        if view.playtest_button.enabled:
+        if view.send_to_playtest_button.enabled:
             playtesting_difficulty = cast(DifficultyAll, view.playtest_difficulty_select.values[0])
             await self.bot.api.send_map_to_playtest(data.code, SendToPlaytestDTO(playtesting_difficulty))
 
