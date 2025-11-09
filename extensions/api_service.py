@@ -51,6 +51,7 @@ from genjipk_sdk.models import (
     PlaytestVote,
     PlaytestVotesAll,
     QualityValueDTO,
+    SendToPlaytestDTO,
     TierChange,
     UserCreateDTO,
     UserReadDTO,
@@ -1582,6 +1583,11 @@ class APIService:
     def delete_claimed_idempotency(self, data: ClaimRequest) -> Response[None]:
         """Delete a claimed idempotency key for a queue message action."""
         r = Route("DELETE", "/internal/idempotency/claim")
+        return self._request(r, data=data)
+
+    def send_map_to_playtest(self, code: OverwatchCode, data: SendToPlaytestDTO) -> Response[JobStatus]:
+        """Send a map to playtest."""
+        r = Route("POST", "/maps/{code}/playtest", code=code)
         return self._request(r, data=data)
 
 
