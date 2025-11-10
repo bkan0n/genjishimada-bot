@@ -65,7 +65,7 @@ class VideoLinkButton(Button):
         Args:
             url (str): The URL to link to.
         """
-        super().__init__(style=discord.ButtonStyle.link, url=url, label="View Video")
+        super().__init__(style=discord.ButtonStyle.link, url=url, label="View")
 
 
 class NewsfeedComponentView(LayoutView):
