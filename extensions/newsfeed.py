@@ -18,7 +18,7 @@ from discord.ui import (
     Thumbnail,
 )
 from discord.utils import maybe_coroutine
-from genjipk_sdk.models import NewsfeedEvent, NewsfeedQueueMessage
+from genjipk_sdk.models import NewsfeedEvent, NewsfeedLinkedMap, NewsfeedQueueMessage
 from genjipk_sdk.models.jobs import ClaimRequest
 from genjipk_sdk.models.newsfeed import (
     NewsfeedAnnouncement,
@@ -291,6 +291,22 @@ class MapEditFormattable(msgspec.Struct, kw_only=True):
         """
         return {
             "Reason": self.reason,
+        }
+
+
+class LinkedMapFormattable(msgspec.Struct, kw_only=True):
+    official_code: OverwatchCode
+    unofficial_code: OverwatchCode
+
+    def to_format_dict(self) -> dict[str, str | None]:
+        """Convert the struct to a dictionary for rendering.
+
+        Returns:
+            dict[str, str | None]: Mapping of field names to values.
+        """
+        return {
+            "Official Code": self.official_code,
+            "Unofficial Code": self.unofficial_code,
         }
 
 
@@ -662,6 +678,37 @@ class AnnouncementNewsfeedBuilder(BaseNewsfeedBuilder[NewsfeedAnnouncement]):
             thumbnail_url=payload.thumbnail_url or "https://i.imgur.com/qhcwGOY.png",
             link_url=payload.url,
             color=discord.Color.blue(),
+        )
+
+
+class LinkedMapNewsfeedBuilder(BaseNewsfeedBuilder[NewsfeedLinkedMap]):
+    event_type = "linked_map"
+    payload_cls = NewsfeedLinkedMap
+
+    def build(self, payload: NewsfeedLinkedMap) -> NewsfeedComponentView:
+        """Build a newsfeed view for a general announcement.
+
+        Args:
+            payload (NewsfeedAnnouncement): The announcement payload.
+
+        Returns:
+            NewsfeedComponentView: The constructed view.
+        """
+        form = LinkedMapFormattable(
+            official_code=payload.official_code,
+            unofficial_code=payload.unofficial_code,
+        )
+        content = self._format(form)
+        guild_id = self.bot.config.guild
+        link_url = f"https://discord.com/channels/{guild_id}/{payload.playtest_id}" if payload.playtest_id else None
+        if link_url:
+            content += "\n\nThe official map is now in playtest. Use the button below to visit the playtest thread!"
+        return NewsfeedComponentView(
+            title="Official and CN Map Linked",
+            content=content,
+            thumbnail_url="https://i.imgur.com/qhcwGOY.png",
+            link_url=link_url,
+            color=discord.Color.dark_magenta(),
         )
 
 
