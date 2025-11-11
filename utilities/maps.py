@@ -115,7 +115,7 @@ class MapModel(MapReadDTO):
 
         return {
             "Code": self.code,
-            "Official Code" if self.official else "CN Code": self.linked_code,
+            "Official Code" if not self.official else "CN Code": self.linked_code,
             "Title": self.title,
             "Creator": discord.utils.escape_markdown(", ".join(creator_names)),
             "Map": self.map_name,
