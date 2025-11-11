@@ -306,7 +306,7 @@ class LinkedMapFormattable(msgspec.Struct, kw_only=True):
         """
         return {
             "Official Code": self.official_code,
-            "CN Code": self.unofficial_code,
+            "Unofficial (CN) Code": self.unofficial_code,
         }
 
 
@@ -418,7 +418,7 @@ class NewMapNewsfeedBuilder(BaseNewsfeedBuilder[NewsfeedNewMap]):
         )
         content = self._format(form)
         title = (
-            f"A new {'official' if payload.official else 'CN'} {payload.difficulty} "
+            f"A new {'official' if payload.official else 'unofficial (CN)'} {payload.difficulty} "
             f"map on {payload.map_name} has been submitted!"
         )
         return NewsfeedComponentView(
@@ -704,7 +704,7 @@ class LinkedMapNewsfeedBuilder(BaseNewsfeedBuilder[NewsfeedLinkedMap]):
         if link_url:
             content += "\n\nThe official map is now in playtest. Use the button below to visit the playtest thread!"
         return NewsfeedComponentView(
-            title="Official and CN Map Linked",
+            title="Official and Unofficial (CN) Map Linked",
             content=content,
             thumbnail_url="https://i.imgur.com/qhcwGOY.png",
             link_url=link_url,
