@@ -306,7 +306,7 @@ class LinkedMapFormattable(msgspec.Struct, kw_only=True):
         """
         return {
             "Official Code": self.official_code,
-            "Unofficial Code": self.unofficial_code,
+            "CN Code": self.unofficial_code,
         }
 
 
@@ -418,7 +418,7 @@ class NewMapNewsfeedBuilder(BaseNewsfeedBuilder[NewsfeedNewMap]):
         )
         content = self._format(form)
         title = (
-            f"A new {'official' if payload.official else 'unofficial'} {payload.difficulty} "
+            f"A new {'official' if payload.official else 'CN'} {payload.difficulty} "
             f"map on {payload.map_name} has been submitted!"
         )
         return NewsfeedComponentView(
