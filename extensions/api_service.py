@@ -129,6 +129,7 @@ _TriFilter = Literal["All", "With", "Without"]
 CompletionFilter = _TriFilter
 MedalFilter = _TriFilter
 PlaytestFilter = _TriFilter
+OfficialFilter = Literal["All", "Official Only", "CN Only"]
 
 
 @lru_cache(maxsize=None)
