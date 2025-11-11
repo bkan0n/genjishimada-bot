@@ -421,12 +421,13 @@ class NewMapNewsfeedBuilder(BaseNewsfeedBuilder[NewsfeedNewMap]):
             f"A new {'official' if payload.official else 'unofficial (CN)'} {payload.difficulty} "
             f"map on {payload.map_name} has been submitted!"
         )
+        hex_color = "#2858bf" if payload.official else "#111827"
         return NewsfeedComponentView(
             title=title,
             content=content,
             banner_url=payload.banner_url,
             thumbnail_url=_rank_badge_url(payload.difficulty),
-            color=discord.Color.from_str("#111827"),
+            color=discord.Color.from_str(hex_color),
         )
 
 
