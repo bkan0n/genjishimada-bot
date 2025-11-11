@@ -655,7 +655,7 @@ class RoleNewsfeedBuilder(BaseNewsfeedBuilder[NewsfeedRole]):
             title=f"Roles updated for {payload.name}",
             content=mentions,
             color=discord.Color.gold(),
-            thumbnail_url="https://i.imgur.com/qhcwGOY.png",
+            thumbnail_url="https://bkan0n.com/assets/images/genji/icons/warning.avif",
         )
 
 
@@ -676,7 +676,7 @@ class AnnouncementNewsfeedBuilder(BaseNewsfeedBuilder[NewsfeedAnnouncement]):
             title=payload.title,
             content=payload.content,
             banner_url=payload.banner_url,
-            thumbnail_url=payload.thumbnail_url or "https://i.imgur.com/qhcwGOY.png",
+            thumbnail_url=payload.thumbnail_url or "https://bkan0n.com/assets/images/genji/icons/warning.avif",
             link_url=payload.url,
             color=discord.Color.blue(),
         )
@@ -707,7 +707,7 @@ class LinkedMapNewsfeedBuilder(BaseNewsfeedBuilder[NewsfeedLinkedMap]):
         return NewsfeedComponentView(
             title="Official and Unofficial (CN) Map Linked",
             content=content,
-            thumbnail_url="https://i.imgur.com/qhcwGOY.png",
+            thumbnail_url="https://bkan0n.com/assets/images/genji/icons/warning.avif",
             link_url=link_url,
             color=discord.Color.dark_magenta(),
         )
