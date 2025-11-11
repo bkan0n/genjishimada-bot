@@ -42,10 +42,12 @@ class MapSearchView(PaginatorView[MapModel]):
         data = self.current_page
         res = []
         for _map in data:
+            title = f"### {_map.title}" if _map.title is not None else ""
+            code_block = f"\n```{_map.code}```\n"
+            details = FilteredFormatter(_map, filter_fields=("Code", "Title")).format()
             section = (
-                *((ui.TextDisplay(_map.title),) if _map.title is not None else ()),
-                ui.TextDisplay(f"```{_map.code}```"),
-                ui.TextDisplay(FilteredFormatter(_map, filter_fields=("Code",)).format()),
+                ui.TextDisplay(f"{title}{code_block}{details}"),
+                ui.Separator(),
             )
             res.extend(section)
         return res
