@@ -76,7 +76,7 @@ from genjipk_sdk.models.jobs import (
     SubmitCompletionReturnDTO,
     UpvoteSubmissionReturnDTO,
 )
-from genjipk_sdk.models.maps import PlaytestReadDTO
+from genjipk_sdk.models.maps import LinkMapsCreateDTO, PlaytestReadDTO, UnlinkMapsCreateDTO
 from genjipk_sdk.models.tags import (
     TagsAutocompleteRequest,
     TagsAutocompleteResponse,
@@ -1589,6 +1589,16 @@ class APIService:
     def send_map_to_playtest(self, code: OverwatchCode, data: SendToPlaytestDTO) -> Response[JobStatus]:
         """Send a map to playtest."""
         r = Route("POST", "/maps/{code}/playtest", code=code)
+        return self._request(r, data=data)
+
+    def link_map_codes(self, data: LinkMapsCreateDTO) -> Response[JobStatus | None]:
+        """Link two map codes."""
+        r = Route("POST", "/maps/link-codes")
+        return self._request(r, data=data, response_model=JobStatus | None)
+
+    def unlink_map_codes(self, data: UnlinkMapsCreateDTO) -> Response[None]:
+        """Unlink two map codes."""
+        r = Route("DELETE", "/maps/link-codes")
         return self._request(r, data=data)
 
 

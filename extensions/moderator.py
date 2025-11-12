@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Callable, Literal, cast
 
 from discord import Member, app_commands
 from genjipk_sdk.models import MapPatchDTO, Medals, QualityValueDTO, SendToPlaytestDTO
+from genjipk_sdk.models.maps import LinkMapsCreateDTO, UnlinkMapsCreateDTO
 from genjipk_sdk.utilities import DifficultyAll
 from genjipk_sdk.utilities._types import (
     MapCategory,
@@ -403,6 +404,69 @@ class ModeratorCog(BaseCog):
         if set(view.select.values) == set(map_data.mechanics):
             return
         await itx.client.api.edit_map(code, MapPatchDTO(restrictions=cast("list[Restrictions]", view.select.values)))
+
+    @map.command(name="link-codes")
+    async def link_codes(
+        self,
+        itx: GenjiItx,
+        official_code: app_commands.Transform[OverwatchCode, transformers.CodeAllTransformer],
+        unofficial_code: app_commands.Transform[OverwatchCode, transformers.CodeAllTransformer],
+    ) -> None:
+        """Link an official and unofficial map.
+
+        Args:
+            itx (GenjiItx): The interaction context.
+            official_code (OverwatchCode): The official map code to link.
+            unofficial_code (OverwatchCode): The unofficial map code to link.
+
+        Raises:
+            UserFacingError: If the map could not be retrieved.
+        """
+        data = LinkMapsCreateDTO(official_code=official_code, unofficial_code=unofficial_code)
+
+        message = (
+            "Are you sure you want to link these two maps?\n"
+            f"`Official` {official_code}\n"
+            f"`Unofficial (CN)` {unofficial_code}\n"
+        )
+
+        async def callback() -> None:
+            await itx.client.api.link_map_codes(data)
+
+        view = ConfirmationView(message, callback)
+        await itx.response.send_message(view=view)
+        view.original_interaction = itx
+
+    @map.command(name="unlink-codes")
+    async def unlink_codes(
+        self,
+        itx: GenjiItx,
+        official_code: app_commands.Transform[OverwatchCode, transformers.CodeAllTransformer],
+        unofficial_code: app_commands.Transform[OverwatchCode, transformers.CodeAllTransformer],
+        reason: str,
+    ) -> None:
+        """Unlink an official and unofficial map.
+
+        Args:
+            itx (GenjiItx): The interaction context.
+            official_code (OverwatchCode): The official map code to unlink.
+            unofficial_code (OverwatchCode): The unofficial map code to unlink.
+
+        """
+        data = UnlinkMapsCreateDTO(official_code=official_code, unofficial_code=unofficial_code, reason=reason)
+
+        message = (
+            "Are you sure you want to unlink these two maps?\n"
+            f"`Official` {official_code}\n"
+            f"`Unofficial (CN)` {unofficial_code}\n"
+        )
+
+        async def callback() -> None:
+            await itx.client.api.unlink_map_codes(data)
+
+        view = ConfirmationView(message, callback)
+        await itx.response.send_message(view=view)
+        view.original_interaction = itx
 
     @record.command(name="convert-legacy")
     async def convert_legacy(
