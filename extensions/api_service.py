@@ -101,7 +101,7 @@ from multidict import MultiDict
 from extensions.completions import CompletionLeaderboardFormattable, CompletionUserFormattable
 from utilities.change_requests import FormattableChangeRequest, FormattableStaleChangeRequest
 from utilities.completions import CompletionSubmissionModel, SuspiciousCompletionModel
-from utilities.errors import APIUnavailableError
+from utilities.errors import APIHTTPError, APIUnavailableError
 from utilities.maps import MapCreateModel, MapModel
 from utilities.views.mod_guides_view import FormattableGuide
 
@@ -131,16 +131,6 @@ CompletionFilter = _TriFilter
 MedalFilter = _TriFilter
 PlaytestFilter = _TriFilter
 OfficialFilter = Literal["All", "Official Only", "Unofficial (CN) Only"]
-
-
-class APIHTTPError(Exception):
-    def __init__(self, status: int, message: str | None, error: str | None, extra: dict | None) -> None:
-        """Init API Error."""
-        super().__init__(f"{status}: {message}")
-        self.status = status
-        self.message = message
-        self.error = error
-        self.extra = extra
 
 
 @lru_cache(maxsize=None)

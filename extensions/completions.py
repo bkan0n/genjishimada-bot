@@ -50,7 +50,6 @@ from genjipk_sdk.utilities import DIFFICULTY_TO_RANK_MAP, DifficultyAll
 from genjipk_sdk.utilities._types import OverwatchCode
 
 from extensions._queue_registry import register_queue_handler
-from extensions.api_service import APIHTTPError
 from utilities import transformers
 from utilities.base import (
     BaseCog,
@@ -67,7 +66,7 @@ from utilities.completions import (
     make_ordinal,
 )
 from utilities.emojis import REJECTED, generate_all_star_rating_strings
-from utilities.errors import UserFacingError
+from utilities.errors import APIHTTPError, UserFacingError
 from utilities.extra import poll_job_until_complete
 from utilities.formatter import FilteredFormatter
 from utilities.paginator import PaginatorView
