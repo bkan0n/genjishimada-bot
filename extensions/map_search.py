@@ -146,7 +146,7 @@ class MapSearchCog(BaseCog):
         await itx.response.defer(ephemeral=True)
         restrictions: list[Restrictions] | None = [restriction] if restriction else None
         mechanics: list[Mechanics] | None = [mechanic] if mechanic else None
-        if official_filter == "All"
+        if official_filter == "All":
             official_val = None
         elif official_filter == "Official Only":
             official_val = True
