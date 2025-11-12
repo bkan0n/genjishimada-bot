@@ -5,7 +5,7 @@ import contextlib
 from datetime import timedelta
 from functools import wraps
 from logging import getLogger
-from typing import TYPE_CHECKING, Awaitable, Callable, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, TypeAlias, cast
 from uuid import UUID
 
 import discord
@@ -153,6 +153,9 @@ class ConfirmationView(BaseView):
             ui.TextDisplay(f"# {self._end_time_string}"),
         )
         self.add_item(container)
+
+    async def on_error(self, itx: GenjiItx, error: Exception, item: Any, /) -> None:
+        await itx.client.tree.on_error(itx, error)
 
 
 class BaseService:
