@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from logging import getLogger
 from typing import TYPE_CHECKING, Any, Callable, Literal, cast
 
+from aiohttp.client import ClientResponseError
 from discord import Member, app_commands
 from genjipk_sdk.models import MapPatchDTO, Medals, QualityValueDTO, SendToPlaytestDTO
 from genjipk_sdk.models.maps import LinkMapsCreateDTO, UnlinkMapsCreateDTO
@@ -27,6 +29,8 @@ from utilities.views.mod_status_view import ModStatusView
 if TYPE_CHECKING:
     from core import Genji
     from utilities._types import GenjiItx
+
+log = getLogger(__name__)
 
 
 async def edit_map_field(
@@ -462,7 +466,11 @@ class ModeratorCog(BaseCog):
         )
 
         async def callback() -> None:
-            await itx.client.api.unlink_map_codes(data)
+            try:
+                await itx.client.api.unlink_map_codes(data)
+            except ClientResponseError as e:
+                log.info(dir(e))
+                raise UserFacingError(e.message)
 
         view = ConfirmationView(message, callback)
         await itx.response.send_message(view=view)
