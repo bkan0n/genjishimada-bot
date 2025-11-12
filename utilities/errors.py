@@ -159,8 +159,10 @@ async def on_command_error(itx: GenjiItx, error: Exception) -> None:
     """Handle application command errors."""
     exception = getattr(error, "original", error)
     event_id = sentry_sdk.capture_exception(exception)
-    if isinstance(exception, (UserFacingError, APIHTTPError)):
-        view = ErrorView(event_id, exception, itx, description=str(exception))
+    if isinstance(exception, UserFacingError):
+        view = ErrorView
+    if isinstance(exception, APIHTTPError):
+        view = ErrorView(event_id, exception, itx, description=exception.error or "Unknown Error")
     else:
         description = None
         if isinstance(exception, APIUnavailableError):
