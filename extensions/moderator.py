@@ -3,7 +3,6 @@ from __future__ import annotations
 from logging import getLogger
 from typing import TYPE_CHECKING, Any, Callable, Literal, cast
 
-from aiohttp.client import ClientResponseError
 from discord import Member, app_commands
 from genjipk_sdk.models import MapPatchDTO, Medals, QualityValueDTO, SendToPlaytestDTO
 from genjipk_sdk.models.maps import LinkMapsCreateDTO, UnlinkMapsCreateDTO
@@ -18,6 +17,7 @@ from genjipk_sdk.utilities._types import (
 )
 from msgspec import UNSET
 
+from extensions.api_service import APIHTTPError
 from utilities import transformers
 from utilities.base import BaseCog, ConfirmationView
 from utilities.errors import UserFacingError
@@ -468,11 +468,8 @@ class ModeratorCog(BaseCog):
         async def callback() -> None:
             try:
                 await itx.client.api.unlink_map_codes(data)
-            except ClientResponseError as e:
-                log.info(dir(e))
-                log.info(e.args)
-                log.info(e.args)
-                raise UserFacingError(e.message)
+            except APIHTTPError as e:
+                raise UserFacingError(e.error)
 
         view = ConfirmationView(message, callback)
         await itx.response.send_message(view=view)

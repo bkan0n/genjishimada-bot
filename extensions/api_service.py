@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+import json
 import mimetypes
 import os
 from functools import lru_cache
@@ -130,6 +131,16 @@ CompletionFilter = _TriFilter
 MedalFilter = _TriFilter
 PlaytestFilter = _TriFilter
 OfficialFilter = Literal["All", "Official Only", "Unofficial (CN) Only"]
+
+
+class APIHTTPError(Exception):
+    def __init__(self, status: int, message: str | None, error: str | None, extra: dict | None) -> None:
+        """Init API Error."""
+        super().__init__(f"{status}: {message}")
+        self.status = status
+        self.message = message
+        self.error = error
+        self.extra = extra
 
 
 @lru_cache(maxsize=None)
@@ -347,7 +358,14 @@ class APIService:
             async with self.__session.request(
                 route.method, route.url, headers=headers, params=params, **kwargs
             ) as resp:
-                resp.raise_for_status()
+                text = await resp.text()
+                try:
+                    resp.raise_for_status()
+                except Exception:
+                    decoded = json.loads(text) if text else {}
+                    error = decoded.get("error")
+                    extra = decoded.get("extra")
+                    raise APIHTTPError(resp.status, resp.reason, error, extra)
                 if resp.status == HTTPStatus.NO_CONTENT:
                     if response_model:
                         raise ValueError(f"Expected JSON but got no content from {route.url}")
