@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Awaitable, Callable, TypeAlias, TypeVar
 
 from aio_pika import Channel, DeliveryMode, Message, connect_robust
 from aio_pika.abc import AbstractIncomingMessage
+from aio_pika.exceptions import QueueEmpty
 from aio_pika.pool import Pool
 from discord import TextChannel
 
@@ -271,6 +272,8 @@ class RabbitService:
             try:
                 msg = await queue.get(timeout=0.1, no_ack=False)
             except asyncio.TimeoutError:
+                break
+            except QueueEmpty:
                 break
             if msg is None:
                 break
