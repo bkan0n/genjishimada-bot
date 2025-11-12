@@ -17,7 +17,6 @@ from genjipk_sdk.utilities._types import (
 )
 from msgspec import UNSET
 
-from extensions.api_service import APIHTTPError
 from utilities import transformers
 from utilities.base import BaseCog, ConfirmationView
 from utilities.errors import UserFacingError
@@ -438,7 +437,7 @@ class ModeratorCog(BaseCog):
             await itx.client.api.link_map_codes(data)
 
         view = ConfirmationView(message, callback)
-        await itx.response.send_message(view=view)
+        await itx.response.send_message(view=view, ephemeral=True)
         view.original_interaction = itx
 
     @map.command(name="unlink-codes")
@@ -455,6 +454,7 @@ class ModeratorCog(BaseCog):
             itx (GenjiItx): The interaction context.
             official_code (OverwatchCode): The official map code to unlink.
             unofficial_code (OverwatchCode): The unofficial map code to unlink.
+            reason (str): The reason why it was unlinked.
 
         """
         data = UnlinkMapsCreateDTO(official_code=official_code, unofficial_code=unofficial_code, reason=reason)
@@ -466,13 +466,10 @@ class ModeratorCog(BaseCog):
         )
 
         async def callback() -> None:
-            try:
-                await itx.client.api.unlink_map_codes(data)
-            except APIHTTPError as e:
-                raise UserFacingError(e.error)
+            await itx.client.api.unlink_map_codes(data)
 
         view = ConfirmationView(message, callback)
-        await itx.response.send_message(view=view)
+        await itx.response.send_message(view=view, ephemeral=True)
         view.original_interaction = itx
 
     @record.command(name="convert-legacy")

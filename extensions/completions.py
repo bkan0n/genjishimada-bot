@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any, Sequence, get_args
 
 import discord
 import msgspec
-from aiohttp import ClientResponseError
 from discord import (
     AllowedMentions,
     AppCommandType,
@@ -51,6 +50,7 @@ from genjipk_sdk.utilities import DIFFICULTY_TO_RANK_MAP, DifficultyAll
 from genjipk_sdk.utilities._types import OverwatchCode
 
 from extensions._queue_registry import register_queue_handler
+from extensions.api_service import APIHTTPError
 from utilities import transformers
 from utilities.base import (
     BaseCog,
@@ -1286,8 +1286,8 @@ class CompletionsCog(BaseCog):
         data.screenshot = screenshot_url
         try:
             _data_with_job_status = await itx.client.api.submit_completion(data)
-        except ClientResponseError:
-            raise UserFacingError("New submissions must be faster than previous submissions.")
+        except APIHTTPError as e:
+            raise UserFacingError(e.error)
         await itx.client.api.set_quality_vote(data.code, QualityUpdateDTO(data.user_id, quality.value))
         data = await self.bot.api.get_completion_submission(_data_with_job_status.completion_id)
 

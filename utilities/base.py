@@ -5,12 +5,13 @@ import contextlib
 from datetime import timedelta
 from functools import wraps
 from logging import getLogger
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, TypeAlias, cast
+from typing import TYPE_CHECKING, Awaitable, Callable, TypeAlias, cast
 from uuid import UUID
 
 import discord
 from aio_pika.abc import AbstractIncomingMessage
 from discord import ButtonStyle, MediaGalleryItem, NotFound, ui
+from discord.app_commands import AppCommandError
 from discord.ext import commands
 
 if TYPE_CHECKING:
@@ -154,8 +155,8 @@ class ConfirmationView(BaseView):
         )
         self.add_item(container)
 
-    async def on_error(self, itx: GenjiItx, error: Exception, item: Any, /) -> None:
-        await itx.client.tree.on_error(itx, error)
+    async def on_error(self, itx: GenjiItx, error: Exception, item: ui.Button | ui.Select, /) -> None:
+        await itx.client.tree.on_error(itx, cast("AppCommandError", error))
 
 
 class BaseService:

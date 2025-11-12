@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Literal, NamedTuple, cast
 
 import discord
 import msgspec
-from aiohttp import ClientResponseError
+from discord.app_commands import AppCommandError
 from discord.ui import Item
 from genjipk_sdk.models import (
     MapPatchDTO,
@@ -43,7 +43,7 @@ from genjipk_sdk.utilities import (
 from extensions._queue_registry import register_queue_handler
 from utilities import BaseCog, BaseService
 from utilities.base import ConfirmationView
-from utilities.errors import UserFacingError, on_command_error
+from utilities.errors import UserFacingError
 from utilities.formatter import FilteredFormatter
 from utilities.maps import MapModel
 
@@ -903,25 +903,13 @@ class DifficultyRatingSelect(discord.ui.Select["PlaytestComponentsV2View"]):
             raise UserFacingError("Vote failed. You cannot vote for your own map.")
 
         if choice == "Remove Vote":
-            try:
-                await itx.client.api.delete_playtest_vote(thread_id, user_id)
-            except ClientResponseError as e:
-                if e.status == 400:  # noqa: PLR2004
-                    raise UserFacingError("You do not have a vote to remove.")
-                raise e
+            await itx.client.api.delete_playtest_vote(thread_id, user_id)
             return
 
         vote = PlaytestVote(
             difficulty=DIFFICULTY_MIDPOINTS[choice],  # type: ignore[arg-type]
         )
-        try:
-            await itx.client.api.cast_playtest_vote(thread_id, user_id, vote=vote)
-        except ClientResponseError as e:
-            if e.status == 400:  # noqa: PLR2004
-                raise UserFacingError(
-                    "Vote failed. You do not have a verified, non-completion submission associated with this map."
-                )
-            raise e
+        await itx.client.api.cast_playtest_vote(thread_id, user_id, vote=vote)
 
         await itx.edit_original_response(content=f"You voted **{choice}**. Updating...")
 
@@ -1209,9 +1197,9 @@ class MapFinalizationViewV2(discord.ui.LayoutView):
         )
         self.add_item(container)
 
-    async def on_error(self, interaction: GenjiItx, error: Exception, item: Item[Any]) -> None:
+    async def on_error(self, itx: GenjiItx, error: Exception, item: Item[Any]) -> None:
         """On error handler."""
-        await on_command_error(interaction, error)
+        await itx.client.tree.on_error(itx, cast("AppCommandError", error))
 
 
 class FinalizeButton(discord.ui.Button["PlaytestComponentsV2View"]):
@@ -1329,9 +1317,9 @@ class PlaytestComponentsV2View(discord.ui.LayoutView):
         await self.fetch_data(bot)
         self.rebuild_components()
 
-    async def on_error(self, interaction: GenjiItx, error: Exception, item: Item[Any]) -> None:
+    async def on_error(self, itx: GenjiItx, error: Exception, item: Item[Any]) -> None:
         """On error handler."""
-        await on_command_error(interaction, error)
+        await itx.client.tree.on_error(itx, cast("AppCommandError", error))
 
 
 class PlaytestCog(BaseCog):
