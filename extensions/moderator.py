@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from http import HTTPStatus
 from logging import getLogger
 from typing import TYPE_CHECKING, Any, Callable, Literal, cast
 
@@ -19,7 +20,7 @@ from msgspec import UNSET
 
 from utilities import transformers
 from utilities.base import BaseCog, ConfirmationView
-from utilities.errors import UserFacingError
+from utilities.errors import APIHTTPError, UserFacingError
 from utilities.views.mod_creator_view import MapCreatorModView
 from utilities.views.mod_edit_map_views import MechanicsEditView, RestrictionsEditView
 from utilities.views.mod_guides_view import ModGuidePaginatorView
@@ -434,7 +435,12 @@ class ModeratorCog(BaseCog):
         )
 
         async def callback() -> None:
-            await itx.client.api.link_map_codes(data)
+            try:
+                await itx.client.api.link_map_codes(data)
+            except APIHTTPError as e:
+                if e.status == HTTPStatus.BAD_REQUEST:
+                    raise UserFacingError()
+                raise e
 
         view = ConfirmationView(message, callback)
         await itx.response.send_message(view=view, ephemeral=True)
@@ -466,7 +472,12 @@ class ModeratorCog(BaseCog):
         )
 
         async def callback() -> None:
-            await itx.client.api.unlink_map_codes(data)
+            try:
+                await itx.client.api.unlink_map_codes(data)
+            except APIHTTPError as e:
+                if e.status == HTTPStatus.BAD_REQUEST:
+                    raise UserFacingError()
+                raise
 
         view = ConfirmationView(message, callback)
         await itx.response.send_message(view=view, ephemeral=True)
