@@ -348,11 +348,11 @@ class APIService:
             async with self.__session.request(
                 route.method, route.url, headers=headers, params=params, **kwargs
             ) as resp:
-                text = await resp.text()
+                raw = await resp.read()
                 try:
                     resp.raise_for_status()
                 except Exception:
-                    decoded = json.loads(text) if text else {}
+                    decoded = json.loads(raw) if raw else {}
                     error = decoded.get("error")
                     extra = decoded.get("extra")
                     raise APIHTTPError(resp.status, resp.reason, error, extra)
@@ -361,7 +361,6 @@ class APIService:
                         raise ValueError(f"Expected JSON but got no content from {route.url}")
                     return None
 
-                raw = await resp.read()
                 if response_model is None:
                     return raw
                 if raw is None:
