@@ -470,6 +470,8 @@ class ModeratorCog(BaseCog):
                 await itx.client.api.unlink_map_codes(data)
             except ClientResponseError as e:
                 log.info(dir(e))
+                log.info(e.args)
+                log.info(e.args)
                 raise UserFacingError(e.message)
 
         view = ConfirmationView(message, callback)
