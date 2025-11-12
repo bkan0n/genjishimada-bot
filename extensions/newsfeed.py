@@ -18,7 +18,7 @@ from discord.ui import (
     Thumbnail,
 )
 from discord.utils import maybe_coroutine
-from genjipk_sdk.models import NewsfeedEvent, NewsfeedLinkedMap, NewsfeedQueueMessage
+from genjipk_sdk.models import NewsfeedEvent, NewsfeedLinkedMap, NewsfeedQueueMessage, NewsfeedUnlinkedMap
 from genjipk_sdk.models.jobs import ClaimRequest
 from genjipk_sdk.models.newsfeed import (
     NewsfeedAnnouncement,
@@ -307,6 +307,24 @@ class LinkedMapFormattable(msgspec.Struct, kw_only=True):
         return {
             "Official Code": self.official_code,
             "Unofficial (CN) Code": self.unofficial_code,
+        }
+
+
+class UnlinkedMapFormattable(msgspec.Struct, kw_only=True):
+    official_code: OverwatchCode
+    unofficial_code: OverwatchCode
+    reason: str
+
+    def to_format_dict(self) -> dict[str, str | None]:
+        """Convert the struct to a dictionary for rendering.
+
+        Returns:
+            dict[str, str | None]: Mapping of field names to values.
+        """
+        return {
+            "Official Code": self.official_code,
+            "Unofficial (CN) Code": self.unofficial_code,
+            "Reason": self.reason,
         }
 
 
@@ -710,6 +728,33 @@ class LinkedMapNewsfeedBuilder(BaseNewsfeedBuilder[NewsfeedLinkedMap]):
             thumbnail_url="https://bkan0n.com/assets/images/genji/icons/warning.avif",
             link_url=link_url,
             color=discord.Color.dark_magenta(),
+        )
+
+
+class UnlinkedMapNewsfeedBuilder(BaseNewsfeedBuilder[NewsfeedUnlinkedMap]):
+    event_type = "unlinked_map"
+    payload_cls = NewsfeedUnlinkedMap
+
+    def build(self, payload: NewsfeedUnlinkedMap) -> NewsfeedComponentView:
+        """Build a newsfeed view for a general announcement.
+
+        Args:
+            payload (NewsfeedAnnouncement): The announcement payload.
+
+        Returns:
+            NewsfeedComponentView: The constructed view.
+        """
+        form = UnlinkedMapFormattable(
+            official_code=payload.official_code,
+            unofficial_code=payload.unofficial_code,
+            reason=payload.reason,
+        )
+        content = self._format(form)
+        return NewsfeedComponentView(
+            title="Official and Unofficial (CN) Map Unlinked",
+            content=content,
+            thumbnail_url="https://bkan0n.com/assets/images/genji/icons/warning.avif",
+            color=discord.Color.magenta(),
         )
 
 
