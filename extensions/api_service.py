@@ -1482,7 +1482,7 @@ class APIService:
             Response[None]: API response object.
         """
         r = Route(
-            "POST",
+            "PUT",
             "/users/fake/{fake_user_id}/link/{real_user_id}",
             fake_user_id=fake_user_id,
             real_user_id=real_user_id,
