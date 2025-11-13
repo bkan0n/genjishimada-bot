@@ -295,7 +295,7 @@ class ModeratorCog(BaseCog):
             code (OverwatchCode): The map code.
             banner_url (str): URL of the new banner image.
         """
-        await edit_map_field(itx, code, "map_banner", banner_url)
+        await edit_map_field(itx, code, "custom_banner", banner_url)
 
     @map.command(name="edit-medals")
     async def edit_medals(
