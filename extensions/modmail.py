@@ -177,6 +177,7 @@ class ModmailCog(BaseCog):
         after process restarts.
         """
         self.bot.add_view(CloseTicketView())
+        self.bot.add_view(TicketStart())
 
     @commands.command()
     @commands.is_owner()
