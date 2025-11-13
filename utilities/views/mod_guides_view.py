@@ -169,14 +169,9 @@ class ModGuidePaginatorView(PaginatorView[FormattableGuide]):
         guides = self.current_page
         res = []
         for guide in guides:
-            log.info(guide.thumbnail)
             guide.code = self._code
-            assert guide.thumbnail
             section = (
-                ui.Section(
-                    ui.TextDisplay(FilteredFormatter(guide).format()),
-                    accessory=ui.Thumbnail(guide.thumbnail),
-                ),
+                ui.TextDisplay(FilteredFormatter(guide).format()),
                 ui.ActionRow(
                     ui.Button(label="Open Video", style=ButtonStyle.link, url=guide.url, disabled=False),
                     EditGuideButton(guide),
