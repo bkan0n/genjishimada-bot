@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 import msgspec
 from discord import ButtonStyle, ui
+from discord.app_commands import AppCommandError
 from genjipk_sdk.models import MAX_CREATORS, Creator, CreatorFull, MapPatchDTO, UserReadDTO
 
 from utilities.base import BaseView, ConfirmationView
@@ -355,3 +356,7 @@ class MapCreatorModView(BaseView):
         self._data = data
         self.rebuild_components()
         await itx.edit_original_response(view=self)
+
+    async def on_error(self, itx: GenjiItx, error: Exception, item: ui.Item[Any], /) -> None:
+        """Handle errors."""
+        await itx.client.tree.on_error(itx, cast("AppCommandError", error))

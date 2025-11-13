@@ -160,7 +160,7 @@ async def on_command_error(itx: GenjiItx, error: Exception) -> None:
     exception = getattr(error, "original", error)
     event_id = sentry_sdk.capture_exception(exception)
     if isinstance(exception, UserFacingError):
-        view = ErrorView
+        view = ErrorView(event_id, exception, itx, description=str(exception))
     else:
         description = None
         if isinstance(exception, APIUnavailableError):

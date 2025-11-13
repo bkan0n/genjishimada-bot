@@ -357,6 +357,10 @@ class CompletionVerificationView(ui.LayoutView):
         )
         self.add_item(container)
 
+    async def on_error(self, itx: GenjiItx, error: Exception, item: ui.Item[Any], /) -> None:
+        """Handle errors."""
+        await itx.client.tree.on_error(itx, cast("app_commands.AppCommandError", error))
+
 
 class CompletionLikeButton(ui.DynamicItem[ui.Button["CompletionView"]], template=r"upvote:submission:(?P<id>[0-9]+)"):
     view: "CompletionView"

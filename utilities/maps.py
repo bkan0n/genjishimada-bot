@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import re
 from logging import getLogger
-from typing import TYPE_CHECKING, TypeVar, cast, get_args
+from typing import TYPE_CHECKING, Any, TypeVar, cast, get_args
 
 import discord
 import msgspec
+from discord.app_commands import AppCommandError
 from genjipk_sdk.models import Creator, MapCreateDTO, MapReadDTO, Medals
 from genjipk_sdk.utilities import (
     DIFFICULTY_RANGES_ALL,
@@ -355,6 +356,10 @@ class MapSubmissionView(BaseView):
         )
         self.add_item(container)
 
+    async def on_error(self, itx: GenjiItx, error: Exception, item: discord.ui.Item[Any], /) -> None:
+        """Handle errors."""
+        await itx.client.tree.on_error(itx, cast("AppCommandError", error))
+
 
 class MapSubmissionConfirmationView(BaseView):
     def __init__(self, data: MapCreateModel, custom_banner_attachment: discord.Attachment | None = None) -> None:
@@ -389,6 +394,10 @@ class MapSubmissionConfirmationView(BaseView):
             discord.ui.ActionRow(self.submit_button, self.cancel_button),
         )
         self.add_item(container)
+
+    async def on_error(self, itx: GenjiItx, error: Exception, item: discord.ui.Item[Any], /) -> None:
+        """Handle errors."""
+        await itx.client.tree.on_error(itx, cast("AppCommandError", error))
 
 
 class DifficultySelect(discord.ui.Select[MapSubmissionView]):

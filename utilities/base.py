@@ -5,7 +5,7 @@ import contextlib
 from datetime import timedelta
 from functools import wraps
 from logging import getLogger
-from typing import TYPE_CHECKING, Awaitable, Callable, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, TypeAlias, cast
 from uuid import UUID
 
 import discord
@@ -74,6 +74,10 @@ class BaseView(ui.LayoutView):
                 return
         cls = type(self)
         raise RuntimeWarning(f"No original_interaction was associated with {cls.__module__}.{cls.__qualname__}.")
+
+    async def on_error(self, itx: GenjiItx, error: Exception, item: ui.Item[Any], /) -> None:
+        """Handle errors."""
+        await itx.client.tree.on_error(itx, cast("AppCommandError", error))
 
 
 class ConfirmationButton(ui.Button["ConfirmationView"]):
@@ -263,3 +267,7 @@ class BaseLoadingView(ui.LayoutView):
         )
         self.add_item(container)
         self.stop()
+
+    async def on_error(self, itx: GenjiItx, error: Exception, item: ui.Item[Any], /) -> None:
+        """Handle errors."""
+        await itx.client.tree.on_error(itx, cast("AppCommandError", error))
