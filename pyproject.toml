@@ -25,7 +25,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-discord-py = { git = "https://github.com/rapptz/discord.py", rev = "753db1724bf13add78b801ebc3952be65e5e7d46" }
+discord-py = { git = "https://github.com/rapptz/discord.py", rev = "b77459a4dfb1eade9686cefeb969b936d0ba46b5" }
 discord-ext-menus = { git = "https://github.com/Rapptz/discord-ext-menus" }
 genjipk-sdk = { git = "https://github.com/bkan0n/genjipk-sdk" }
 
