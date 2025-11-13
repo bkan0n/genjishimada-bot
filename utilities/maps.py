@@ -114,7 +114,7 @@ class MapModel(MapReadDTO):
             )
         )
 
-        return {
+        res = {
             "Code": self.code,
             "Official Code" if not self.official else "Unofficial (CN) Code": self.linked_code,
             "Official": str(self.official),
@@ -130,6 +130,13 @@ class MapModel(MapReadDTO):
             "Medals": _medals,
             "Desc": self.description,
         }
+        if self.playtesting == "In Progress" and self.playtest:
+            res[" "] = (
+                "-# ‼️**IN PLAYTESTING, SUBJECT TO CHANGE‼️**\n"
+                f"-# Votes: {self.playtest.vote_count} / {self.playtest_threshold}\n"
+                f"-# <#{self.playtest.thread_id}>\n"
+            )
+        return res
 
     @property
     def finalizable(self) -> bool:
