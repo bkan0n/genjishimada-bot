@@ -4,7 +4,7 @@ import asyncio
 import contextlib
 import re
 from logging import getLogger
-from typing import TYPE_CHECKING, Any, Sequence, get_args
+from typing import TYPE_CHECKING, Any, Sequence, cast, get_args
 
 import discord
 import msgspec
@@ -480,6 +480,10 @@ class CompletionView(ui.LayoutView):
         )
 
         self.add_item(container)
+
+    async def on_error(self, itx: GenjiItx, error: Exception, item: ui.Item[Any], /) -> None:
+        """Handle errors."""
+        await itx.client.tree.on_error(itx, cast("app_commands.AppCommandError", error))
 
 
 class CompletionsService(BaseService):
@@ -1272,11 +1276,24 @@ class CompletionsCog(BaseCog):
         message = (
             f"# Does this look correct?\n\n{FilteredFormatter(data).format()}\n\nYou rated this map {quality.name}."
         )
+
         view = ConfirmationView(message=message, image_url=screenshot.url)
         await itx.response.send_message(view=view, ephemeral=True)
         await view.wait()
         if view.confirmed is not True:
             return
+        loading_view = ui.LayoutView()
+        container = ui.Container(
+            ui.Section(
+                ui.TextDisplay("Please wait while we try to auto verify your completion."),
+                accessory=ui.Thumbnail("https://bkan0n.com/assets/images/genji/icons/warning.avif"),
+            ),
+            ui.MediaGallery(MediaGalleryItem("https://bkan0n.com/assets/images/genji/icons/loading.avif")),
+            accent_color=discord.Color.green(),
+        )
+        loading_view.add_item(container)
+        await itx.edit_original_response(view=loading_view)
+
         screenshot_url = await itx.client.api.upload_image(
             await screenshot.read(),
             filename=screenshot.filename,
