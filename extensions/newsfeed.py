@@ -18,7 +18,7 @@ from discord.ui import (
     Thumbnail,
 )
 from discord.utils import maybe_coroutine
-from genjipk_sdk.models import NewsfeedEvent, NewsfeedQueueMessage
+from genjipk_sdk.models import NewsfeedEvent, NewsfeedLinkedMap, NewsfeedQueueMessage, NewsfeedUnlinkedMap
 from genjipk_sdk.models.jobs import ClaimRequest
 from genjipk_sdk.models.newsfeed import (
     NewsfeedAnnouncement,
@@ -65,7 +65,7 @@ class VideoLinkButton(Button):
         Args:
             url (str): The URL to link to.
         """
-        super().__init__(style=discord.ButtonStyle.link, url=url, label="View Video")
+        super().__init__(style=discord.ButtonStyle.link, url=url, label="View")
 
 
 class NewsfeedComponentView(LayoutView):
@@ -294,6 +294,40 @@ class MapEditFormattable(msgspec.Struct, kw_only=True):
         }
 
 
+class LinkedMapFormattable(msgspec.Struct, kw_only=True):
+    official_code: OverwatchCode
+    unofficial_code: OverwatchCode
+
+    def to_format_dict(self) -> dict[str, str | None]:
+        """Convert the struct to a dictionary for rendering.
+
+        Returns:
+            dict[str, str | None]: Mapping of field names to values.
+        """
+        return {
+            "Official Code": self.official_code,
+            "Unofficial (CN) Code": self.unofficial_code,
+        }
+
+
+class UnlinkedMapFormattable(msgspec.Struct, kw_only=True):
+    official_code: OverwatchCode
+    unofficial_code: OverwatchCode
+    reason: str
+
+    def to_format_dict(self) -> dict[str, str | None]:
+        """Convert the struct to a dictionary for rendering.
+
+        Returns:
+            dict[str, str | None]: Mapping of field names to values.
+        """
+        return {
+            "Official Code": self.official_code,
+            "Unofficial (CN) Code": self.unofficial_code,
+            "Reason": self.reason,
+        }
+
+
 P = TypeVar("P")
 
 
@@ -402,15 +436,16 @@ class NewMapNewsfeedBuilder(BaseNewsfeedBuilder[NewsfeedNewMap]):
         )
         content = self._format(form)
         title = (
-            f"A new {'official' if payload.official else 'unofficial'} {payload.difficulty} "
+            f"A new {'official' if payload.official else 'unofficial (CN)'} {payload.difficulty} "
             f"map on {payload.map_name} has been submitted!"
         )
+        hex_color = "#2858bf" if payload.official else "#111827"
         return NewsfeedComponentView(
             title=title,
             content=content,
             banner_url=payload.banner_url,
             thumbnail_url=_rank_badge_url(payload.difficulty),
-            color=discord.Color.from_str("#111827"),
+            color=discord.Color.from_str(hex_color),
         )
 
 
@@ -638,7 +673,7 @@ class RoleNewsfeedBuilder(BaseNewsfeedBuilder[NewsfeedRole]):
             title=f"Roles updated for {payload.name}",
             content=mentions,
             color=discord.Color.gold(),
-            thumbnail_url="https://i.imgur.com/qhcwGOY.png",
+            thumbnail_url="https://bkan0n.com/assets/images/genji/icons/warning.avif",
         )
 
 
@@ -659,9 +694,67 @@ class AnnouncementNewsfeedBuilder(BaseNewsfeedBuilder[NewsfeedAnnouncement]):
             title=payload.title,
             content=payload.content,
             banner_url=payload.banner_url,
-            thumbnail_url=payload.thumbnail_url or "https://i.imgur.com/qhcwGOY.png",
+            thumbnail_url=payload.thumbnail_url or "https://bkan0n.com/assets/images/genji/icons/warning.avif",
             link_url=payload.url,
             color=discord.Color.blue(),
+        )
+
+
+class LinkedMapNewsfeedBuilder(BaseNewsfeedBuilder[NewsfeedLinkedMap]):
+    event_type = "linked_map"
+    payload_cls = NewsfeedLinkedMap
+
+    def build(self, payload: NewsfeedLinkedMap) -> NewsfeedComponentView:
+        """Build a newsfeed view for a general announcement.
+
+        Args:
+            payload (NewsfeedAnnouncement): The announcement payload.
+
+        Returns:
+            NewsfeedComponentView: The constructed view.
+        """
+        form = LinkedMapFormattable(
+            official_code=payload.official_code,
+            unofficial_code=payload.unofficial_code,
+        )
+        content = self._format(form)
+        guild_id = self.bot.config.guild
+        link_url = f"https://discord.com/channels/{guild_id}/{payload.playtest_id}" if payload.playtest_id else None
+        if link_url:
+            content += "\n\nThe official map is now in playtest. Use the button below to visit the playtest thread!"
+        return NewsfeedComponentView(
+            title="Official and Unofficial (CN) Map Linked",
+            content=content,
+            thumbnail_url="https://bkan0n.com/assets/images/genji/icons/warning.avif",
+            link_url=link_url,
+            color=discord.Color.dark_magenta(),
+        )
+
+
+class UnlinkedMapNewsfeedBuilder(BaseNewsfeedBuilder[NewsfeedUnlinkedMap]):
+    event_type = "unlinked_map"
+    payload_cls = NewsfeedUnlinkedMap
+
+    def build(self, payload: NewsfeedUnlinkedMap) -> NewsfeedComponentView:
+        """Build a newsfeed view for a general announcement.
+
+        Args:
+            payload (NewsfeedAnnouncement): The announcement payload.
+
+        Returns:
+            NewsfeedComponentView: The constructed view.
+        """
+        form = UnlinkedMapFormattable(
+            official_code=payload.official_code,
+            unofficial_code=payload.unofficial_code,
+            reason=payload.reason,
+        )
+        content = self._format(form)
+        return NewsfeedComponentView(
+            title="Official and Unofficial (CN) Map Unlinked",
+            content=content,
+            thumbnail_url="https://bkan0n.com/assets/images/genji/icons/warning.avif",
+            color=discord.Color.magenta(),
         )
 
 

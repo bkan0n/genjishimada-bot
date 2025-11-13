@@ -112,8 +112,10 @@ class MapModel(MapReadDTO):
                 f"{VERIFIED_BRONZE} {self.medals.bronze}"
             )
         )
+
         return {
             "Code": self.code,
+            "Official Code" if not self.official else "Unofficial (CN) Code": self.linked_code,
             "Title": self.title,
             "Creator": discord.utils.escape_markdown(", ".join(creator_names)),
             "Map": self.map_name,

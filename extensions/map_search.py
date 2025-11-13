@@ -13,7 +13,7 @@ from genjipk_sdk.utilities._types import (
     Restrictions,
 )
 
-from extensions.api_service import CompletionFilter, MedalFilter, PlaytestFilter
+from extensions.api_service import CompletionFilter, MedalFilter, OfficialFilter, PlaytestFilter
 from utilities import transformers
 from utilities.base import BaseCog
 from utilities.emojis import generate_all_star_rating_strings
@@ -42,10 +42,12 @@ class MapSearchView(PaginatorView[MapModel]):
         data = self.current_page
         res = []
         for _map in data:
+            title = f"### {_map.title}" if _map.title is not None else ""
+            code_block = f"\n```{_map.code}```\n"
+            details = FilteredFormatter(_map, filter_fields=("Code", "Title")).format()
             section = (
-                *((ui.TextDisplay(_map.title),) if _map.title is not None else ()),
-                ui.TextDisplay(f"```{_map.code}```"),
-                ui.TextDisplay(FilteredFormatter(_map, filter_fields=("Code",)).format()),
+                ui.TextDisplay(f"{title}{code_block}{details}"),
+                ui.Separator(),
             )
             res.extend(section)
         return res
@@ -115,6 +117,7 @@ class MapSearchCog(BaseCog):
         restriction: app_commands.Transform[Restrictions, transformers.RestrictionsTransformer] | None,
         minimum_quality: app_commands.Choice[int] | None,
         category: MapCategory | None,
+        official_filter: OfficialFilter = "Official Only",
         completion_filter: CompletionFilter = "All",
         medal_filter: MedalFilter = "All",
         playtest_filter: PlaytestFilter = "All",
@@ -135,6 +138,7 @@ class MapSearchCog(BaseCog):
             restriction: Optional restriction filter.
             minimum_quality: Optional minimum star rating filter.
             category: Optional category filter.
+            official_filter: Optional official map filter. Defaults to "Official Only".
             completion_filter: Filter maps by completion state. Defaults to "All".
             medal_filter: Filter maps by medal availability. Defaults to "All".
             playtest_filter: Filter maps by playtest state. Defaults to "All".
@@ -142,11 +146,18 @@ class MapSearchCog(BaseCog):
         await itx.response.defer(ephemeral=True)
         restrictions: list[Restrictions] | None = [restriction] if restriction else None
         mechanics: list[Mechanics] | None = [mechanic] if mechanic else None
+        if official_filter == "All":
+            official_val = None
+        elif official_filter == "Official Only":
+            official_val = True
+        else:
+            official_val = False
         if code:
             maps = [await self.bot.api.get_map(code=code)]
         else:
             maps = await self.bot.api.get_maps(
                 map_name=[map_name] if map_name else None,
+                official=official_val,
                 restrictions=restrictions,
                 mechanics=mechanics,
                 difficulty_exact=cast("DifficultyTop", difficulty.value) if difficulty else None,

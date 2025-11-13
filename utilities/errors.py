@@ -28,6 +28,16 @@ class APIUnavailableError(Exception):
     pass
 
 
+class APIHTTPError(Exception):
+    def __init__(self, status: int, message: str | None, error: str | None, extra: dict | None) -> None:
+        """Init API Error."""
+        super().__init__(f"{status}: {message}")
+        self.status = status
+        self.message = message
+        self.error = error
+        self.extra = extra
+
+
 class ReportIssueModal(ui.Modal):
     feedback = ui.TextInput(
         label="Add more info",
@@ -150,7 +160,7 @@ async def on_command_error(itx: GenjiItx, error: Exception) -> None:
     exception = getattr(error, "original", error)
     event_id = sentry_sdk.capture_exception(exception)
     if isinstance(exception, UserFacingError):
-        view = ErrorView(event_id, exception, itx, description=str(exception))
+        view = ErrorView
     else:
         description = None
         if isinstance(exception, APIUnavailableError):

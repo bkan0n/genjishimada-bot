@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+import json
 import mimetypes
 import os
 from functools import lru_cache
@@ -76,7 +77,7 @@ from genjipk_sdk.models.jobs import (
     SubmitCompletionReturnDTO,
     UpvoteSubmissionReturnDTO,
 )
-from genjipk_sdk.models.maps import PlaytestReadDTO
+from genjipk_sdk.models.maps import LinkMapsCreateDTO, PlaytestReadDTO, UnlinkMapsCreateDTO
 from genjipk_sdk.models.tags import (
     TagsAutocompleteRequest,
     TagsAutocompleteResponse,
@@ -100,7 +101,7 @@ from multidict import MultiDict
 from extensions.completions import CompletionLeaderboardFormattable, CompletionUserFormattable
 from utilities.change_requests import FormattableChangeRequest, FormattableStaleChangeRequest
 from utilities.completions import CompletionSubmissionModel, SuspiciousCompletionModel
-from utilities.errors import APIUnavailableError
+from utilities.errors import APIHTTPError, APIUnavailableError
 from utilities.maps import MapCreateModel, MapModel
 from utilities.views.mod_guides_view import FormattableGuide
 
@@ -129,6 +130,7 @@ _TriFilter = Literal["All", "With", "Without"]
 CompletionFilter = _TriFilter
 MedalFilter = _TriFilter
 PlaytestFilter = _TriFilter
+OfficialFilter = Literal["All", "Official Only", "Unofficial (CN) Only"]
 
 
 @lru_cache(maxsize=None)
@@ -346,13 +348,19 @@ class APIService:
             async with self.__session.request(
                 route.method, route.url, headers=headers, params=params, **kwargs
             ) as resp:
-                resp.raise_for_status()
+                raw = await resp.read()
+                try:
+                    resp.raise_for_status()
+                except Exception:
+                    decoded = json.loads(raw) if raw else {}
+                    error = decoded.get("error")
+                    extra = decoded.get("extra")
+                    raise APIHTTPError(resp.status, resp.reason, error, extra)
                 if resp.status == HTTPStatus.NO_CONTENT:
                     if response_model:
                         raise ValueError(f"Expected JSON but got no content from {route.url}")
                     return None
 
-                raw = await resp.read()
                 if response_model is None:
                     return raw
                 if raw is None:
@@ -1588,6 +1596,16 @@ class APIService:
     def send_map_to_playtest(self, code: OverwatchCode, data: SendToPlaytestDTO) -> Response[JobStatus]:
         """Send a map to playtest."""
         r = Route("POST", "/maps/{code}/playtest", code=code)
+        return self._request(r, data=data)
+
+    def link_map_codes(self, data: LinkMapsCreateDTO) -> Response[JobStatus | None]:
+        """Link two map codes."""
+        r = Route("POST", "/maps/link-codes")
+        return self._request(r, data=data, response_model=JobStatus | None)
+
+    def unlink_map_codes(self, data: UnlinkMapsCreateDTO) -> Response[None]:
+        """Unlink two map codes."""
+        r = Route("DELETE", "/maps/link-codes")
         return self._request(r, data=data)
 
 
