@@ -777,8 +777,8 @@ class ModActionsConfirmButton(discord.ui.Button):
         Args:
             itx (GenjiItx): The interaction that triggered the button.
         """
-        self.view.clear_items()
         self.view.confirmed = True
+        self.view.clear_items()
         self.view.build_final_view("confirmed")
         await itx.response.edit_message(view=self.view)
         self.view.stop()
