@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from logging import getLogger
 from typing import TYPE_CHECKING, Literal, Sequence, cast, get_args
 
 from discord import ButtonStyle, app_commands, ui
@@ -25,6 +26,8 @@ from utilities.views.mod_guides_view import FormattableGuide
 if TYPE_CHECKING:
     from core import Genji
     from utilities._types import GenjiItx
+
+log = getLogger(__name__)
 
 CN_TRANSLATIONS_TEMP = {
     "Aatlis": "Aatlis",
@@ -305,9 +308,10 @@ class MapSearchCog(BaseCog):
             official_filter: Optional official map filter. Defaults to "Official Only".
             completion_filter: Filter maps by completion state. Defaults to "All".
             medal_filter: Filter maps by medal availability. Defaults to "All".
-            playtest_filter: Filter maps by playtest state. Defaults to "All".
+            playtest_filter: Filter imaps by playtest state. Defaults to "All".
         """
         await itx.response.defer(ephemeral=True)
+        log.info(f"THIS IS WHAT THE VALUE IS HERE===={playtest_filter}")
         restrictions: list[Restrictions] | None = [restriction] if restriction else None
         mechanics: list[Mechanics] | None = [mechanic] if mechanic else None
         if official_filter == "All":
