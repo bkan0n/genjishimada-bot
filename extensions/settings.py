@@ -170,8 +170,9 @@ class OpenOverwatchUsernamesModalButton(ui.Button["SettingsView"]):
                 new_usernames.append(OverwatchUsernameItem(i.component.value, i.text == "Primary Overwatch Username"))
         await itx.client.api.update_overwatch_usernames(itx.user.id, OverwatchUsernamesUpdate(new_usernames))
         self.view.current_usernames = await itx.client.api.get_overwatch_usernames(itx.user.id)
+        _view = self.view
         self.view.rebuild_components()
-        await itx.edit_original_response(view=self.view)
+        await itx.edit_original_response(view=_view)
 
 
 class OverwatchUsernameModal(ui.Modal):

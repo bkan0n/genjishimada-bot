@@ -1231,8 +1231,9 @@ class FinalizeButton(discord.ui.Button["PlaytestComponentsV2View"]):
             AttributeError: If the map data has no playtest meta.
         """
         self.view.data.override_finalize = False
+        _view = self.view
         self.view.rebuild_components()
-        await itx.response.edit_message(view=self.view)
+        await itx.response.edit_message(view=_view)
         assert isinstance(itx.channel, discord.Thread)
         await itx.channel.send("Map has been finalized. Please stand by for Sensei verification.")
         assert itx.guild
