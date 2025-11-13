@@ -289,8 +289,8 @@ dependencies = [
 
 [[package]]
 name = "discord-py"
-version = "2.7.0a5336+g8f90b7d5"
-source = { git = "https://github.com/rapptz/discord.py?rev=8f90b7d534ec39a366fb9ef6d569c799ec840d80#8f90b7d534ec39a366fb9ef6d569c799ec840d80" }
+version = "2.7.0a5303+g753db172"
+source = { git = "https://github.com/rapptz/discord.py?rev=753db1724bf13add78b801ebc3952be65e5e7d46#753db1724bf13add78b801ebc3952be65e5e7d46" }
 dependencies = [
     { name = "aiohttp" },
     { name = "audioop-lts" },
@@ -408,7 +408,7 @@ requires-dist = [
     { name = "aio-pika", specifier = ">=9.5.5" },
     { name = "asyncpg", specifier = ">=0.30.0" },
     { name = "discord-ext-menus", git = "https://github.com/Rapptz/discord-ext-menus" },
-    { name = "discord-py", git = "https://github.com/rapptz/discord.py?rev=8f90b7d534ec39a366fb9ef6d569c799ec840d80" },
+    { name = "discord-py", git = "https://github.com/rapptz/discord.py?rev=753db1724bf13add78b801ebc3952be65e5e7d46" },
     { name = "genjipk-sdk", git = "https://github.com/bkan0n/genjipk-sdk" },
     { name = "jishaku", specifier = ">=2.6.0" },
     { name = "msgspec", specifier = ">=0.19.0" },
