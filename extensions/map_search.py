@@ -207,7 +207,7 @@ class MapSearchView(PaginatorView[MapModel]):
         res = []
         for _map in data:
             title = f"### {_map.title}" if _map.title is not None else ""
-            code_block = f"\n```{_map.code}```\n"
+            code_block = f"\n```{_map.code}```"
             if self.enable_cn_translation:
                 details = CNTranslatedFilteredFormatter(_map, filter_fields=("Code", "Title")).format()
             else:

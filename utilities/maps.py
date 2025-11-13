@@ -118,7 +118,7 @@ class MapModel(MapReadDTO):
             res[" "] = (
                 "-# ‼️**IN PLAYTESTING, SUBJECT TO CHANGE‼️**\n"
                 f"-# Votes: {self.playtest.vote_count} / {self.playtest_threshold}\n"
-                f"-# <#{self.playtest.thread_id}>\n"
+                f"-# <#{self.playtest.thread_id}>"
             )
         res.update(
             {
