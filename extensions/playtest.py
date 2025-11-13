@@ -1062,11 +1062,11 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
 
             case "Toggle Finalize Button":
                 self.view.data.override_finalize = not self.view.data.override_finalize
-
+                _view = self.view
                 self.view.rebuild_components()
-                await itx.response.edit_message(view=self.view)
+                await itx.response.edit_message(view=_view)
 
-                state = "enabled" if self.view.data.override_finalize else "disabled"
+                state = "enabled" if _view.data.override_finalize else "disabled"
                 _message = (
                     f"The Finalize button has been manually {state} for map "
                     f"({code}) by {itx.user.mention}.\n\n{_disabled_notifications_alert}"
