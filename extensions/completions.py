@@ -1314,17 +1314,6 @@ class CompletionsCog(BaseCog):
         await view.wait()
         if view.confirmed is not True:
             return
-        loading_view = ui.LayoutView()
-        container = ui.Container(
-            ui.Section(
-                ui.TextDisplay("Please wait while we try to auto verify your completion."),
-                accessory=ui.Thumbnail("https://bkan0n.com/assets/images/genji/icons/warning.avif"),
-            ),
-            ui.MediaGallery(MediaGalleryItem("https://bkan0n.com/assets/images/genji/icons/loading.avif")),
-            accent_color=discord.Color.green(),
-        )
-        loading_view.add_item(container)
-        await itx.edit_original_response(view=loading_view)
 
         screenshot_url = await itx.client.api.upload_image(
             await screenshot.read(),
