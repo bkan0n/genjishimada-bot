@@ -120,6 +120,7 @@ CN_TRANSLATIONS_TEMP = {
 CN_TRANSLATIONS_FIELDS_TEMP = {
     "Code": "代码",
     "Official Code": "国际服代码",
+    "Official": "官方的",
     "Unofficial (CN) Code": "国服代码",
     "Title": "标题",
     "Creator": "作者",
