@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence, cast, get_args
+from typing import TYPE_CHECKING, Literal, Sequence, cast, get_args
 
 from discord import ButtonStyle, app_commands, ui
 from genjipk_sdk.utilities import DifficultyTop
@@ -135,6 +135,24 @@ CN_TRANSLATIONS_FIELDS_TEMP = {
 }
 
 
+_CNTriFilter = Literal["全部", "包含", "不包含"]
+CNCompletionFilter = _CNTriFilter
+CNMedalFilter = _CNTriFilter
+CNPlaytestFilter = _CNTriFilter
+CNOfficialFilter = Literal["全部", "仅限官方", "非官方（CN）"]
+
+CN_FILTER_TRANSLATIONS_TEMP: dict[_CNTriFilter, CompletionFilter] = {
+    "全部": "All",
+    "包含": "With",
+    "不包含": "Without",
+}
+CN_FILTER_2_TRANSLATIONS_TEMP: dict[OfficialFilter, CNOfficialFilter] = {
+    "All": "全部",
+    "Official Only": "仅限官方",
+    "Unofficial (CN) Only": "非官方（CN）",
+}
+
+
 class CNTranslatedFilteredFormatter(FilteredFormatter):
     def __init__(
         self,
@@ -176,9 +194,8 @@ class MapSearchView(PaginatorView[MapModel]):
             data: A list of MapModel.
             page_size: Amount of Models on a single page.
         """
-        super().__init__("Map Search", data, page_size=page_size)
         self.enable_cn_translation = enable_cn_translation
-        CNTranslatedFilteredFormatter
+        super().__init__("Map Search", data, page_size=page_size)
 
     def build_page_body(self) -> Sequence[ui.Item]:
         """Build page body for MapSearchView."""
@@ -363,10 +380,10 @@ class MapSearchCog(BaseCog):
         restriction: app_commands.Transform[Restrictions, transformers.RestrictionsTransformer] | None,
         minimum_quality: app_commands.Choice[int] | None,
         category: MapCategory | None,
-        official_filter: OfficialFilter = "Official Only",
-        completion_filter: CompletionFilter = "All",
-        medal_filter: MedalFilter = "All",
-        playtest_filter: PlaytestFilter = "All",
+        official_filter: CNOfficialFilter = "非官方（CN）",
+        completion_filter: CNCompletionFilter = "全部",
+        medal_filter: CNMedalFilter = "全部",
+        playtest_filter: CNPlaytestFilter = "全部",
     ) -> None:
         """Search for maps with filters such as name, code, difficulty, quality, and more.
 
@@ -392,9 +409,9 @@ class MapSearchCog(BaseCog):
         await itx.response.defer(ephemeral=True)
         restrictions: list[Restrictions] | None = [restriction] if restriction else None
         mechanics: list[Mechanics] | None = [mechanic] if mechanic else None
-        if official_filter == "All":
+        if official_filter == CN_FILTER_2_TRANSLATIONS_TEMP["All"]:
             official_val = None
-        elif official_filter == "Official Only":
+        elif official_filter == CN_FILTER_2_TRANSLATIONS_TEMP["Official Only"]:
             official_val = True
         else:
             official_val = False
@@ -409,9 +426,9 @@ class MapSearchCog(BaseCog):
                 difficulty_exact=cast("DifficultyTop", difficulty.value) if difficulty else None,
                 minimum_quality=minimum_quality.value if minimum_quality else None,
                 creator_ids=[creator] if creator else None,
-                playtest_filter=playtest_filter,
-                medal_filter=medal_filter,
-                completion_filter=completion_filter,
+                playtest_filter=CN_FILTER_TRANSLATIONS_TEMP[playtest_filter],
+                medal_filter=CN_FILTER_TRANSLATIONS_TEMP[medal_filter],
+                completion_filter=CN_FILTER_TRANSLATIONS_TEMP[completion_filter],
                 category=[category] if category else None,
                 return_all=True,
             )
