@@ -65,7 +65,8 @@ async def edit_map_field(
     )
 
     async def callback() -> None:
-        await itx.client.api.edit_map(code, MapPatchDTO(**{field_name: new_value}))
+        patch_field = "custom_banner" if field_name == "map_banner" else field_name
+        await itx.client.api.edit_map(code, MapPatchDTO(**{patch_field: new_value}))
 
     view = ConfirmationView(message, callback)
     await itx.edit_original_response(view=view)
@@ -295,7 +296,7 @@ class ModeratorCog(BaseCog):
             code (OverwatchCode): The map code.
             banner_url (str): URL of the new banner image.
         """
-        await edit_map_field(itx, code, "custom_banner", banner_url)
+        await edit_map_field(itx, code, "map_banner", banner_url)
 
     @map.command(name="edit-medals")
     async def edit_medals(
