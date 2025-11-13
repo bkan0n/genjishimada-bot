@@ -348,6 +348,7 @@ class APIService:
             async with self.__session.request(
                 route.method, route.url, headers=headers, params=params, **kwargs
             ) as resp:
+                log.info(f"The params inside of _request show as {params}")
                 raw = await resp.read()
                 try:
                     resp.raise_for_status()
@@ -465,6 +466,9 @@ class APIService:
             "page_number": page_number,
             "return_all": return_all,
         }
+        log.info(f"Playtest filtyer is now {playtest_filter}")
+        log.info(f"Playtest filtyer is now (in the dict) {params['playtest_filter']}")
+
         return self._request(r, response_model=list[MapModel], params=params)
 
     async def get_map(  # noqa: PLR0913
