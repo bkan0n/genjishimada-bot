@@ -110,6 +110,79 @@ MAP_PLAYTESTING_INFO_IMAGE = "https://bkan0n.com/assets/images/map_submit_flow.p
 
 DIFF_TECH_CHART_IMAGE = "https://bkan0n.com/assets/images/diff_techs.png"
 
+UNOFFICIAL_MAPS_INFO_EN = """
+**Unofficial maps** are the Chinese equivalent of parkour maps. Since we have no visibilty/control over these maps, they stay separate in our system.
+
+**Do completions count?**
+No.
+Completions on Unofficial maps **do not** count toward:
+- XP or Mastery
+- Rank progress
+- Medals (+, ++, +++)
+Only **Official** maps allow verified completions.
+
+**Submitting Unofficial Maps**
+To submit an Unofficial (CN) map, visit:
+**https://genji.pk**
+
+You must log in with your **Discord account** to submit.
+Admins, Mods, and Senseis may also manually link codes when they confirm two maps are exact equivalents.
+
+**How Linking Works**
+Some creators publish the **same map** on both global and Chinese servers. When this happens, the two map codes can be **linked**, allowing players to easily find the matching version.
+
+Typical scenarios:
+1. **A CN map is submitted first** → An Official version is created automatically and then playtested normally.
+2. **An Official map is later ported to CN** → A linked CN code is added without requiring new playtests.
+3. **Both codes were submitted separately** → Staff can link them using a simple command.
+
+**Why Unofficial Maps Are Visible**
+Unofficial codes exist to help players:
+- Identify CN/global equivalents
+- Navigate cross-server variants
+- Avoid confusion when creators maintain multiple versions of the same map
+
+Unofficial maps are for **reference only** and are not part of the ranking, XP, or medal systems.
+
+"""
+UNOFFICIAL_MAPS_INFO_CN = """
+**非官方地图**相当于中文社区的跑酷地图。由于我们无法监控这些地图，它们在系统中保持独立状态。
+
+**通关记录是否有效？**
+无效。
+非官方地图的通关记录**不计入**：
+- 经验值或精通度
+- 等级进度
+- 勋章（+、++、+++）
+仅**官方地图**支持验证通关记录。
+
+**提交非官方地图**
+提交非官方（中文）地图请访问：
+**https://genji.pk**
+
+提交时必须使用**Discord账号**登录。
+管理员、版主和导师在确认两张地图完全一致时，也可手动关联代码。
+
+**关联机制说明**
+部分创作者会在全球服务器和中文服务器发布**相同地图**。此时可将两张地图代码**关联**，方便玩家快速找到对应版本。
+
+典型场景：
+1. **中国区地图先提交** → 系统自动创建官方版本并正常测试
+2. **官方地图后续移植至中国区** → 无需重新测试即可添加关联代码
+3. **两地代码分别提交** → 管理员可通过简单指令完成关联
+
+**非官方地图可见性说明**
+非官方代码的存在旨在协助玩家：
+- 识别中文/全球版本对应关系
+- 跨服务器版本导航
+- 避免制作者维护同一地图多版本时的混淆
+
+非官方地图仅供**参考**，不参与排名、经验值及勋章系统。
+
+
+通过DeepL.com（免费版）翻译
+"""
+
 
 class InformationButton(ui.Button):
     def __init__(
@@ -256,6 +329,16 @@ class MapInformationView(ui.LayoutView):
                     response_view=GenericInformationView(
                         title="Difficulty / Tech Chart", image_url=DIFF_TECH_CHART_IMAGE
                     ),
+                ),
+                InformationButton(
+                    label="Unofficial (CN) Maps",
+                    response_view=GenericInformationView(
+                        title="Unofficial (CN) Maps", image_url=UNOFFICIAL_MAPS_INFO_EN
+                    ),
+                ),
+                InformationButton(
+                    label="非官方（CN）地图",
+                    response_view=GenericInformationView(title="非官方（CN）地图", image_url=UNOFFICIAL_MAPS_INFO_CN),
                 ),
             ),
         )
