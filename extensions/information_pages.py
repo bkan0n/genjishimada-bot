@@ -332,13 +332,11 @@ class MapInformationView(ui.LayoutView):
                 ),
                 InformationButton(
                     label="Unofficial (CN) Maps",
-                    response_view=GenericInformationView(
-                        title="Unofficial (CN) Maps", image_url=UNOFFICIAL_MAPS_INFO_EN
-                    ),
+                    response_view=GenericInformationView(title="Unofficial (CN) Maps", content=UNOFFICIAL_MAPS_INFO_EN),
                 ),
                 InformationButton(
                     label="非官方（CN）地图",
-                    response_view=GenericInformationView(title="非官方（CN）地图", image_url=UNOFFICIAL_MAPS_INFO_CN),
+                    response_view=GenericInformationView(title="非官方（CN）地图", content=UNOFFICIAL_MAPS_INFO_CN),
                 ),
             ),
         )
