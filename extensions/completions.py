@@ -39,6 +39,7 @@ from genjipk_sdk.models import (
 )
 from genjipk_sdk.models.completions import (
     CompletionVerificationPutDTO,
+    FailedAutoverifyMessage,
     QualityUpdateDTO,
     SuspiciousCompletionWriteDTO,
     SuspiciousFlag,
@@ -508,6 +509,33 @@ class CompletionsService(BaseService):
         upvote_channel = self.bot.get_channel(self.bot.config.channels.submission.upvotes)
         assert isinstance(upvote_channel, TextChannel)
         self.upvote_channel = upvote_channel
+
+    @register_queue_handler("api.completion.autoverification.failed")
+    async def _process_autoverification_failed(self, message: AbstractIncomingMessage) -> None:
+        try:
+            struct = msgspec.json.decode(message.body, type=FailedAutoverifyMessage)
+            if message.headers.get("x-pytest-enabled", False):
+                log.debug("Pytest message received.")
+                return
+
+            log.debug("[x] [RabbitMQ] Processing failed autoverify message")
+            channel_id = self.bot.config.channels.updates.dlq_alerts
+            guild_id = self.bot.config.guild
+            guild = self.bot.get_guild(guild_id)
+            assert guild
+            channel = guild.get_channel(channel_id)
+            assert isinstance(channel, TextChannel)
+
+            content = (
+                f"`Submitted Code` {struct.submitted_code}\n"
+                f"`Submitted Time` {struct.submitted_time}\n"
+                f"`User ID` {struct.user_id}\n"
+                f"`Extracted Data`\n```\n{struct.extracted}\n```"
+            )
+            await channel.send(content)
+
+        except Exception as e:
+            raise e
 
     @register_queue_handler("api.completion.upvote")
     async def _process_update_upvote_message(self, message: AbstractIncomingMessage) -> None:

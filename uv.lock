@@ -289,8 +289,8 @@ dependencies = [
 
 [[package]]
 name = "discord-py"
-version = "2.7.0a5354+gb77459a4"
-source = { git = "https://github.com/rapptz/discord.py?rev=master#b77459a4dfb1eade9686cefeb969b936d0ba46b5" }
+version = "2.7.0a5356+gc342db85"
+source = { git = "https://github.com/rapptz/discord.py?rev=master#c342db853486ef6e26d72b10bf901e951c4b4d8e" }
 dependencies = [
     { name = "aiohttp" },
     { name = "audioop-lts" },
@@ -372,7 +372,7 @@ wheels = [
 [[package]]
 name = "genjipk-sdk"
 version = "0.1.0"
-source = { git = "https://github.com/bkan0n/genjipk-sdk#71d2d50b90018f1851b6e252cf21e4133d9ee2d6" }
+source = { git = "https://github.com/bkan0n/genjipk-sdk#1b004a9b0eebaf5e7e3d724f271ccf7d0a5a7b57" }
 dependencies = [
     { name = "hatchling" },
     { name = "msgspec" },
