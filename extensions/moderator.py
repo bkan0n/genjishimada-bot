@@ -36,6 +36,7 @@ log = getLogger(__name__)
 
 class EditMedalsModal(ui.Modal):
     def __init__(self, data: MapModel) -> None:
+        super().__init__(title="Edit Medals")
         self.data = data
 
         medals = data.medals
