@@ -311,7 +311,7 @@ class MapSearchCog(BaseCog):
             playtest_filter: Filter imaps by playtest state. Defaults to "All".
         """
         await itx.response.defer(ephemeral=True)
-        log.info(f"THIS IS WHAT THE VALUE IS HERE===={playtest_filter}")
+        log.debug(f"THIS IS WHAT THE VALUE IS HERE===={playtest_filter}")
         restrictions: list[Restrictions] | None = [restriction] if restriction else None
         mechanics: list[Mechanics] | None = [mechanic] if mechanic else None
         if official_filter == "All":

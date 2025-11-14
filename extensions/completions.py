@@ -570,7 +570,7 @@ class CompletionsService(BaseService):
         view = ui.LayoutView.from_message(message)
         for c in view.walk_children():
             if isinstance(c, ui.Button):
-                log.info("ITS HAPPENING")
+                log.debug("ITS HAPPENING")
                 new_count = str(await self.bot.api.get_upvotes_from_message_id(data.message_id))
                 if new_count == "0":
                     return
