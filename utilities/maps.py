@@ -113,22 +113,33 @@ class MapModel(MapReadDTO):
                 f"{VERIFIED_BRONZE} {self.medals.bronze}"
             )
         )
+        res = {}
+        if self.playtesting == "In Progress" and self.playtest:
+            res[" "] = (
+                "-# ‼️**IN PLAYTESTING, SUBJECT TO CHANGE‼️**\n"
+                f"-# Votes: {self.playtest.vote_count} / {self.playtest_threshold}\n"
+                f"-# <#{self.playtest.thread_id}>"
+            )
+        res.update(
+            {
+                "Code": self.code,
+                "Official Code" if not self.official else "Unofficial (CN) Code": self.linked_code,
+                "Official": str(self.official),
+                "Title": self.title,
+                "Creator": discord.utils.escape_markdown(", ".join(creator_names)),
+                "Map": self.map_name,
+                "Category": self.category,
+                "Checkpoints": str(self.checkpoints),
+                "Difficulty": self.difficulty,
+                "Mechanics": ", ".join(_mechanics) if _mechanics else None,
+                "Restrictions": ", ".join(_restrictions) if _mechanics else None,
+                "Guide": ", ".join(_guides),
+                "Medals": _medals,
+                "Desc": self.description,
+            }
+        )
 
-        return {
-            "Code": self.code,
-            "Official Code" if not self.official else "Unofficial (CN) Code": self.linked_code,
-            "Title": self.title,
-            "Creator": discord.utils.escape_markdown(", ".join(creator_names)),
-            "Map": self.map_name,
-            "Category": self.category,
-            "Checkpoints": str(self.checkpoints),
-            "Difficulty": self.difficulty,
-            "Mechanics": ", ".join(_mechanics) if _mechanics else None,
-            "Restrictions": ", ".join(_restrictions) if _mechanics else None,
-            "Guide": ", ".join(_guides),
-            "Medals": _medals,
-            "Desc": self.description,
-        }
+        return res
 
     @property
     def finalizable(self) -> bool:

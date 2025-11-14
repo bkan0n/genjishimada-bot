@@ -777,8 +777,8 @@ class ModActionsConfirmButton(discord.ui.Button):
         Args:
             itx (GenjiItx): The interaction that triggered the button.
         """
-        self.view.clear_items()
         self.view.confirmed = True
+        self.view.clear_items()
         self.view.build_final_view("confirmed")
         await itx.response.edit_message(view=self.view)
         self.view.stop()
@@ -1062,11 +1062,11 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
 
             case "Toggle Finalize Button":
                 self.view.data.override_finalize = not self.view.data.override_finalize
-
+                _view = self.view
                 self.view.rebuild_components()
-                await itx.response.edit_message(view=self.view)
+                await itx.response.edit_message(view=_view)
 
-                state = "enabled" if self.view.data.override_finalize else "disabled"
+                state = "enabled" if _view.data.override_finalize else "disabled"
                 _message = (
                     f"The Finalize button has been manually {state} for map "
                     f"({code}) by {itx.user.mention}.\n\n{_disabled_notifications_alert}"
@@ -1231,8 +1231,9 @@ class FinalizeButton(discord.ui.Button["PlaytestComponentsV2View"]):
             AttributeError: If the map data has no playtest meta.
         """
         self.view.data.override_finalize = False
+        _view = self.view
         self.view.rebuild_components()
-        await itx.response.edit_message(view=self.view)
+        await itx.response.edit_message(view=_view)
         assert isinstance(itx.channel, discord.Thread)
         await itx.channel.send("Map has been finalized. Please stand by for Sensei verification.")
         assert itx.guild

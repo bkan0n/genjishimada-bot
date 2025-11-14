@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from logging import getLogger
 from typing import TYPE_CHECKING, Sequence
 
 from discord import ButtonStyle, ui
@@ -14,6 +15,8 @@ from utilities.paginator import PaginatorView
 if TYPE_CHECKING:
     from core import Genji
     from utilities._types import GenjiItx
+
+log = getLogger(__name__)
 
 
 class FormattableGuide(GuideFull):
@@ -167,12 +170,8 @@ class ModGuidePaginatorView(PaginatorView[FormattableGuide]):
         res = []
         for guide in guides:
             guide.code = self._code
-            assert guide.thumbnail
             section = (
-                ui.Section(
-                    ui.TextDisplay(FilteredFormatter(guide).format()),
-                    accessory=ui.Thumbnail(guide.thumbnail),
-                ),
+                ui.TextDisplay(FilteredFormatter(guide).format()),
                 ui.ActionRow(
                     ui.Button(label="Open Video", style=ButtonStyle.link, url=guide.url, disabled=False),
                     EditGuideButton(guide),

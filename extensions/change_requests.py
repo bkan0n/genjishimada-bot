@@ -532,8 +532,9 @@ class ChangeRequestEditDetailsButton(ui.Button["ChangeRequestConfirmationView"])
             return
 
         self.view.submit_button.disabled = False
+        _view = self.view
         self.view.rebuild_components()
-        await itx.edit_original_response(view=self.view)
+        await itx.edit_original_response(view=_view)
 
 
 class ChangeRequestSubmitButton(ui.Button["ChangeRequestConfirmationView"]):

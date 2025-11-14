@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from logging import getLogger
-from typing import TYPE_CHECKING, Awaitable, Generic, Sequence, Type, TypeVar
+from typing import TYPE_CHECKING, Awaitable, Generic, Sequence, Type, TypeVar, cast
 
 import discord
 import msgspec
@@ -846,7 +846,12 @@ class NewsfeedService:
 
             if event.event_type == "map_edit":
                 assert isinstance(event.payload, NewsfeedMapEdit)
-                _map = await self._bot.api.get_map(code=event.payload.code)
+                for change in event.payload.changes:
+                    if change.field == "Code":
+                        _map = await self._bot.api.get_map(code=cast("OverwatchCode", change.new))
+                        break
+                else:
+                    _map = await self._bot.api.get_map(code=event.payload.code)
                 if _map.playtesting == "In Progress":
                     guild = self._bot.get_guild(self._bot.config.guild)
                     assert guild and _map.playtest

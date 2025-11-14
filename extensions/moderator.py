@@ -4,7 +4,7 @@ from http import HTTPStatus
 from logging import getLogger
 from typing import TYPE_CHECKING, Any, Callable, Literal, cast
 
-from discord import Member, app_commands
+from discord import Member, TextStyle, app_commands, ui
 from genjipk_sdk.models import MapPatchDTO, Medals, QualityValueDTO, SendToPlaytestDTO
 from genjipk_sdk.models.maps import LinkMapsCreateDTO, UnlinkMapsCreateDTO
 from genjipk_sdk.utilities import DifficultyAll
@@ -29,8 +29,93 @@ from utilities.views.mod_status_view import ModStatusView
 if TYPE_CHECKING:
     from core import Genji
     from utilities._types import GenjiItx
+    from utilities.maps import MapModel
 
 log = getLogger(__name__)
+
+
+class EditMedalsModal(ui.Modal):
+    def __init__(self, data: MapModel) -> None:
+        super().__init__(title="Edit Medals")
+        self.data = data
+
+        medals = data.medals
+        self.gold = medals.gold if medals else 0
+        self.silver = medals.silver if medals else 0
+        self.bronze = medals.bronze if medals else 0
+
+        self.gold_label = ui.Label(
+            text="Gold",
+            description="Set the Gold medal threshold.",
+            component=ui.TextInput(style=TextStyle.short, max_length=15, default=str(self.gold)),
+        )
+        self.silver_label = ui.Label(
+            text="Silver",
+            description="Set the Silver medal threshold.",
+            component=ui.TextInput(style=TextStyle.short, max_length=15, default=str(self.silver)),
+        )
+        self.bronze_label = ui.Label(
+            text="Bronze",
+            description="Set the Bronze medal threshold.",
+            component=ui.TextInput(style=TextStyle.short, max_length=15, default=str(self.bronze)),
+        )
+        self.add_item(self.gold_label)
+        self.add_item(self.silver_label)
+        self.add_item(self.bronze_label)
+
+    async def on_submit(self, itx: GenjiItx) -> None:
+        await itx.response.defer(ephemeral=True, thinking=True)
+        assert isinstance(self.gold_label.component, ui.TextInput)
+        assert isinstance(self.silver_label.component, ui.TextInput)
+        assert isinstance(self.bronze_label.component, ui.TextInput)
+        if (
+            self.gold_label.component.value == "0"
+            or self.silver_label.component.value == "0"
+            or self.bronze_label.component.value == "0"
+        ):
+            raise UserFacingError("You cannot edit a medal with 0 as the input.")
+
+        trans = transformers.RecordTransformer()
+        try:
+            gold = await trans.transform(itx, self.gold_label.component.value)
+            silver = await trans.transform(itx, self.silver_label.component.value)
+            bronze = await trans.transform(itx, self.bronze_label.component.value)
+        except Exception:
+            raise UserFacingError("Error parsing the thresholds. Please make sure to enter a valid float.")
+
+        if not gold < silver < bronze:
+            raise UserFacingError("Gold must be faster than silver, and silver must be faster than bronze.")
+
+        old_gold, old_silver, old_bronze = (
+            (self.data.medals.gold, self.data.medals.silver, self.data.medals.bronze)
+            if self.data.medals
+            else (None, None, None)
+        )
+
+        medal_changes = []
+        if gold is not None:
+            medal_changes.append(f"Gold: {old_gold} → {gold}")
+        if silver is not None:
+            medal_changes.append(f"Silver: {old_silver} → {silver}")
+        if bronze is not None:
+            medal_changes.append(f"Bronze: {old_bronze} → {bronze}")
+
+        message = "Are you sure you want to change the medal thresholds for this map?\n" + "\n".join(medal_changes)
+
+        async def callback() -> None:
+            medals = Medals(
+                gold=gold,
+                silver=silver,
+                bronze=bronze,
+            )
+            await itx.client.api.edit_map(self.data.code, MapPatchDTO(medals=medals))
+
+        view = ConfirmationView(message, callback)
+        await itx.edit_original_response(view=view)
+        view.original_interaction = itx
+
+    async def on_error(self, itx: GenjiItx, error: Exception, /) -> None:
+        await itx.client.tree.on_error(itx, cast("app_commands.AppCommandError", error))
 
 
 async def edit_map_field(
@@ -65,7 +150,8 @@ async def edit_map_field(
     )
 
     async def callback() -> None:
-        await itx.client.api.edit_map(code, MapPatchDTO(**{field_name: new_value}))
+        patch_field = "custom_banner" if field_name == "map_banner" else field_name
+        await itx.client.api.edit_map(code, MapPatchDTO(**{patch_field: new_value}))
 
     view = ConfirmationView(message, callback)
     await itx.edit_original_response(view=view)
@@ -302,9 +388,6 @@ class ModeratorCog(BaseCog):
         self,
         itx: GenjiItx,
         code: app_commands.Transform[OverwatchCode, transformers.CodeAllTransformer],
-        gold: app_commands.Transform[float, transformers.RecordTransformer] | None,
-        silver: app_commands.Transform[float, transformers.RecordTransformer] | None,
-        bronze: app_commands.Transform[float, transformers.RecordTransformer] | None,
     ) -> None:
         """Edit the medal thresholds (gold/silver/bronze) for a map.
 
@@ -319,43 +402,11 @@ class ModeratorCog(BaseCog):
             UserFacingError: If no values are provided or if partial edits are attempted when no medals exist.
             ValueError: If the map could not be retrieved.
         """
-        if not gold and not silver and not bronze:
-            raise UserFacingError("You need to edit at least one medal.")
-        await itx.response.defer(ephemeral=True)
+        map_data = await itx.client.api.get_map(code=code)
 
-        res = await itx.client.api.get_map(code=code)
-        if not res:
+        if not map_data:
             raise UserFacingError(f"The map code entered (`{code}`) does not exist.")
-
-        if (any((gold, silver, bronze)) and not all((gold, silver, bronze))) and res.medals is None:
-            raise UserFacingError(
-                "This map currently has no medals. You must set all medals before partially editing medals."
-            )
-        old_gold, old_silver, old_bronze = (
-            (res.medals.gold, res.medals.silver, res.medals.bronze) if res.medals else (None, None, None)
-        )
-
-        medal_changes = []
-        if gold is not None:
-            medal_changes.append(f"Gold: {old_gold} → {gold}")
-        if silver is not None:
-            medal_changes.append(f"Silver: {old_silver} → {silver}")
-        if bronze is not None:
-            medal_changes.append(f"Bronze: {old_bronze} → {bronze}")
-
-        message = "Are you sure you want to change the medal thresholds for this map?\n" + "\n".join(medal_changes)
-
-        async def callback() -> None:
-            medals = Medals(
-                gold=gold if gold is not None else res.medals.gold,  # type: ignore
-                silver=silver if silver is not None else res.medals.silver,  # type: ignore
-                bronze=bronze if bronze is not None else res.medals.bronze,  # type: ignore
-            )
-            await itx.client.api.edit_map(code, MapPatchDTO(medals=medals))
-
-        view = ConfirmationView(message, callback)
-        await itx.edit_original_response(view=view)
-        view.original_interaction = itx
+        await itx.response.send_modal(EditMedalsModal(map_data))
 
     @map.command(name="edit-mechanics")
     async def edit_mechanics(
