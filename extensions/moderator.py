@@ -64,7 +64,7 @@ class EditMedalsModal(ui.Modal):
         self.add_item(self.bronze_label)
 
     async def on_submit(self, itx: GenjiItx) -> None:
-        await itx.response.defer(ephemeral=True)
+        await itx.response.defer(ephemeral=True, thinking=True)
         assert isinstance(self.gold_label.component, ui.TextInput)
         assert isinstance(self.silver_label.component, ui.TextInput)
         assert isinstance(self.bronze_label.component, ui.TextInput)
