@@ -70,10 +70,11 @@ class EditMedalsModal(ui.Modal):
         assert isinstance(self.bronze_label.component, ui.TextInput)
         if (
             self.gold_label.component.value == "0"
-            and self.silver_label.component.value == "0"
-            and self.bronze_label.component.value == "0"
+            or self.silver_label.component.value == "0"
+            or self.bronze_label.component.value == "0"
         ):
             raise UserFacingError("You cannot edit a medal with 0 as the input.")
+
         trans = transformers.RecordTransformer()
         try:
             gold = await trans.transform(itx, self.gold_label.component.value)
@@ -81,6 +82,9 @@ class EditMedalsModal(ui.Modal):
             bronze = await trans.transform(itx, self.bronze_label.component.value)
         except Exception:
             raise UserFacingError("Error parsing the thresholds. Please make sure to enter a valid float.")
+
+        if not gold < silver < bronze:
+            raise UserFacingError("Gold must be faster than silver, and silver must be faster than bronze.")
 
         old_gold, old_silver, old_bronze = (
             (self.data.medals.gold, self.data.medals.silver, self.data.medals.bronze)
