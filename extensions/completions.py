@@ -1298,6 +1298,17 @@ class CompletionsCog(BaseCog):
         assert itx.channel
         if itx.channel.id != channel_id:
             raise UserFacingError(f"You need to use this command in <#{channel_id}>.")
+
+        ow_usernames = await itx.client.api.get_overwatch_usernames(itx.user.id)
+
+        if not ow_usernames:
+            raise UserFacingError(
+                "You do not have any Overwatch usernames set. Please use the `/settings` command to set them.\n\n"
+                "You can set up to three usernames, if you have alt accounts. The # (descriminator) in your Battle.net"
+                "username is not necessary.\n\n"
+                "Setting these names allows us to quickly verify your submissions."
+            )
+
         data = CompletionCreateModel(
             code=code,
             user_id=itx.user.id,

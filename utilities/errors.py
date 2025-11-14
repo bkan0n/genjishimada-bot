@@ -83,7 +83,8 @@ class ReportIssueButton(ui.Button["ErrorView"]):
                     scope.set_context(
                         "Command Args", {"Args": dict(self.view.exception_itx.namespace.__dict__.items())}
                     )
-                event_id = sentry_sdk.capture_exception(self.view.exc)
+
+        event_id = sentry_sdk.capture_exception(self.view.exc)
         await modal.wait()
 
         if modal.feedback.value is not None:
@@ -161,11 +162,13 @@ async def on_command_error(itx: GenjiItx, error: Exception) -> None:
     event_id = sentry_sdk.capture_exception(exception)
     if isinstance(exception, UserFacingError):
         view = ErrorView(event_id, exception, itx, description=str(exception))
+        view.original_interaction = itx
     else:
         description = None
         if isinstance(exception, APIUnavailableError):
             description = "We are having trouble connecting to some backend services. Please try again later."
         view = ErrorView(event_id, exception, itx, description=description or "Unknown error.", unknown_error=True)
+        view.original_interaction = itx
 
     log.debug(traceback.format_exception(None, exception, exception.__traceback__))
 
@@ -176,6 +179,5 @@ async def on_command_error(itx: GenjiItx, error: Exception) -> None:
         else:
             await itx.response.send_message(view=view, ephemeral=True)
 
-        view.original_interaction = itx
     if not isinstance(exception, UserFacingError):
         raise exception
