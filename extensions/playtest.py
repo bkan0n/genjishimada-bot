@@ -1139,11 +1139,12 @@ class MapVerificationFlagWaitButton(discord.ui.Button):
         Args:
             itx (GenjiItx): The interaction that triggered the button.
         """
+        _view = self.view
         if self.style == discord.ButtonStyle.red:
             self.view.rebuild_components(color=0xF04847, flag_style=discord.ButtonStyle.green)
         else:
             self.view.rebuild_components(color=0x40A258, flag_style=discord.ButtonStyle.red)
-        await itx.response.edit_message(view=self.view)
+        await itx.response.edit_message(view=_view)
 
 
 class MapFinalizationViewV2(discord.ui.LayoutView):
