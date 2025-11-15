@@ -80,6 +80,7 @@ class ReportIssueButton(ui.Button["ErrorView"]):
                 scope.set_context("Command Args", {"Args": dict(self.view.exception_itx.namespace.__dict__.items())})
 
         event_id = sentry_sdk.capture_exception(self.view.exc)
+        print(event_id)
         await modal.wait()
 
         if modal.feedback.value is not None:
@@ -90,6 +91,8 @@ class ReportIssueButton(ui.Button["ErrorView"]):
             }
             if event_id is not None:
                 data["event_id"] = event_id
+            print(SENTRY_FEEDBACK_URL)
+            print(data)
             await itx.client.session.post(
                 SENTRY_FEEDBACK_URL,
                 headers={
