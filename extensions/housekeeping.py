@@ -6,7 +6,9 @@ from typing import TYPE_CHECKING, Literal
 import discord
 from discord import TextChannel, app_commands, ui
 from discord.ext import commands
+from genjipk_sdk.models import PlaytestPatchDTO
 
+from extensions.playtest import MapFinalizationViewV2
 from utilities.base import BaseCog
 from utilities.errors import UserFacingError
 
@@ -127,6 +129,86 @@ class HousekeepingCog(BaseCog):
             await message.edit(view=saved_view)
 
         await itx.edit_original_response(content="The view has been repaired.")
+
+    @commands.command()
+    async def playtest_fix(self, ctx: GenjiCtx) -> None:
+        p_ids = (
+            (142, "001XK", None),
+            (34, "0D6R3", None),
+            (176, "101MY", None),
+            (15, "10PKG", None),
+            (152, "162T6", None),
+            (197, "1MZDK", 1438580849372168315),
+            (25, "1PAYAW", None),
+            (200, "2R5M4", 1438625395757944934),
+            (159, "30RJ0", 1426168025421451304),
+            (149, "38603", None),
+            (20, "4CDTA", None),
+            (171, "4W42N", None),
+            (154, "68VKC", 1438455381109112895),
+            (11, "6CDCW", None),
+            (111, "6RG452", None),
+            (22, "86764", None),
+            (153, "8914R", None),
+            (190, "8J0XW", None),
+            (3, "8NYFP", None),
+            (29, "8ZYPQ", None),
+            (198, "9V7JN", None),
+            (156, "A8XZZ", None),
+            (150, "CE0M0", None),
+            (165, "CQ7RCZ", None),
+            (24, "CS0ZE", None),
+            (16, "D06DH", None),
+            (130, "D851B", None),
+            (115, "D9DDT", None),
+            (109, "DHT31", None),
+            (23, "DP0CJ", None),
+            (108, "EE0N5", None),
+            (13, "FZD4W", None),
+            (19, "G8NC1", None),
+            (27, "G93VC", None),
+            (14, "GTD5P", None),
+            (199, "GZ67K", 1438127915375263787),
+            (166, "KRTZE", None),
+            (132, "KT9CK", None),
+            (28, "KTKCF", None),
+            (140, "MNW3N", None),
+            (18, "MTBBA", None),
+            (169, "NNK66", None),
+            (145, "P1SVV", None),
+            (31, "P2QPJ", None),
+            (134, "Q1S0M", None),
+            (118, "Q5XMH", None),
+            (12, "Q87FR", None),
+            (26, "QS6EB", None),
+            (21, "RW93E", None),
+            (6, "S9GHV", None),
+            (10, "SBSN4", None),
+            (189, "SEZAW", None),
+            (7, "SJ08K", None),
+            (146, "VFAWB", None),
+            (119, "VH286", None),
+            (9, "VR9WE", None),
+            (8, "WMDAN", None),
+            (2, "XBVJT", None),
+            (17, "XPRE4", None),
+            (30, "SB4V8", None),
+        )
+
+        for p_id, code, v_id in p_ids:
+            model = await self.bot.api.get_partial_map(code)
+            await ctx.bot.playtest._add_playtest(model, p_id)
+            if v_id:
+                assert ctx.guild
+                verification_channel = ctx.guild.get_channel(ctx.bot.config.channels.submission.verification_queue)
+                assert isinstance(verification_channel, discord.TextChannel)
+                data = await ctx.bot.api.get_map(code=code)
+                view = MapFinalizationViewV2(ctx.guild.id, data)
+                verification_message = await verification_channel.send(view=view)
+                playtest_edit_data = PlaytestPatchDTO(verification_id=verification_message.id)
+                if not data.playtest:
+                    raise AttributeError("The data is missing playtest.")
+                await ctx.bot.api.edit_playtest_meta(thread_id=data.playtest.thread_id, data=playtest_edit_data)
 
 
 async def setup(bot: Genji) -> None:

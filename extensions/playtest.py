@@ -249,7 +249,7 @@ class PlaytestService(BaseService):
         Raises:
             discord.NotFound/HTTPException: If the thread can't be fetched.
         """
-        ch = self.verification_channel.get_thread(thread_id)
+        ch = self.playtest_channel.get_thread(thread_id)
 
         if isinstance(ch, discord.Thread):
             return ch
