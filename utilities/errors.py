@@ -70,7 +70,6 @@ class ReportIssueButton(ui.Button["ErrorView"]):
         """Callback."""
         modal = ReportIssueModal(original_itx=itx)
         await itx.response.send_modal(modal)
-        event_id = None
         with sentry_sdk.push_scope() as scope:
             scope.set_user({"id": str(self.view.exception_itx.user.id), "username": self.view.exception_itx.user.name})
             scope.set_tag(
@@ -79,8 +78,7 @@ class ReportIssueButton(ui.Button["ErrorView"]):
             if self.view.exception_itx.namespace:
                 scope.set_context("Command Args", {"Args": dict(self.view.exception_itx.namespace.__dict__.items())})
 
-            event_id = sentry_sdk.capture_exception(self.view.exc)
-            print(event_id)
+            print(self.view.sentry_event_id)
             await modal.wait()
 
             if modal.feedback.value is not None:
@@ -89,8 +87,8 @@ class ReportIssueButton(ui.Button["ErrorView"]):
                     "email": "genjishimada@bkan0n.com",
                     "comments": modal.feedback.value,
                 }
-                if event_id is not None:
-                    data["event_id"] = event_id
+                if self.view.sentry_event_id is not None:
+                    data["event_id"] = self.view.sentry_event_id
                 print(SENTRY_FEEDBACK_URL)
                 print(data)
                 resp = await itx.client.session.post(
