@@ -412,8 +412,10 @@ class CompletionLikeButton(ui.DynamicItem[ui.Button["CompletionView"]], template
             user_id=itx.user.id,
             message_id=itx.message.id,
         )
-        with contextlib.suppress(Exception):
+        try:
             data_with_job_status = await itx.client.api.upvote_submission(data)
+        except Exception:
+            return
         new_count = str(data_with_job_status.upvotes)
         if new_count == "None":
             return
