@@ -79,7 +79,7 @@ async def main() -> None:
         integrations=[
             AsyncioIntegration(),
         ],
-        debug=True,
+        debug=BOT_ENVIRONMENT != "production",
     )
 
     logging.getLogger("discord.gateway").setLevel("WARNING")
