@@ -8,7 +8,7 @@ from discord import TextChannel, app_commands, ui
 from discord.ext import commands
 from genjipk_sdk.models import PlaytestPatchDTO
 
-from extensions.playtest import MapFinalizationViewV2
+from extensions.playtest import MapFinalizationViewV2, PlaytestCog
 from utilities.base import BaseCog
 from utilities.errors import UserFacingError
 
@@ -127,6 +127,11 @@ class HousekeepingCog(BaseCog):
                 if isinstance(c, ui.Button):
                     c.disabled = False
             await message.edit(view=saved_view)
+
+        if message.channel.id == itx.client.config.channels.submission.playtest:
+            cog: "PlaytestCog" = self.bot.get_cog("PlaytestCog")  # pyright: ignore[reportAssignmentType]
+            if _view := cog.verification_views.get(message.id):
+                await message.edit(view=saved_view)
 
         await itx.edit_original_response(content="The view has been repaired.")
 
