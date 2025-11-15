@@ -74,7 +74,7 @@ class EventsCog(BaseCog):
         ninja_role = discord.utils.get(member.guild.roles, name="Ninja")
         assert ninja_role
         await member.add_roles(ninja_role)
-        if self.bot.api.check_user_is_creator(member.id):
+        if await self.bot.api.check_user_is_creator(member.id):
             creator_role = discord.utils.get(member.guild.roles, name="Map Creator")
             assert creator_role
             await member.add_roles(creator_role)
