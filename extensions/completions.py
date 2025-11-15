@@ -531,9 +531,18 @@ class CompletionsService(BaseService):
 
             content = (
                 f"`Submitted Code` {struct.submitted_code}\n"
+                f"`Extracted Code` {struct.extracted_code_cleaned} "
+                f"{'✅' if struct.code_match else '❌'}\n"
                 f"`Submitted Time` {struct.submitted_time}\n"
+                f"`Extracted Time` {struct.extracted_time} "
+                f"{'✅' if struct.time_match else '❌'}\n"
                 f"`User ID` {struct.user_id}\n"
-                f"`Extracted Data`\n```\n{struct.extracted}\n```"
+                f"`Extracted User` {struct.extracted_user_id} "
+                f"{'✅' if struct.user_match else '❌'}\n"
+                f"`Extracted Raw`\n"
+                "```json\n"
+                f"{msgspec.json.encode(struct.extracted).decode()}\n"
+                "```"
             )
             await channel.send(content)
 
