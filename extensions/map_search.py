@@ -201,13 +201,42 @@ class MapSearchView(PaginatorView[MapModel]):
         self.enable_cn_translation = enable_cn_translation
         super().__init__("Map Search", data, page_size=page_size)
 
+    def build_completion_text(self, _map: MapModel) -> str:
+        """Return a 'Completed' string with optional medal, based on time + medal thresholds."""
+        if _map.time is None:
+            return ""
+
+        # Always at least "Completed"
+        res = "🗸 Completed"
+
+        medal_label = None
+        medals = _map.medals
+
+        if medals:
+            t = _map.time
+
+            # Adjust < vs <= if your thresholds are meant to be inclusive
+            if medals.gold is not None and t <= medals.gold:
+                medal_label = "Gold"
+            elif medals.silver is not None and t <= medals.silver:
+                medal_label = "Silver"
+            elif medals.bronze is not None and t <= medals.bronze:
+                medal_label = "Bronze"
+
+        if medal_label:
+            res += f" | 🗸 {medal_label}"
+
+        return res
+
     def build_page_body(self) -> Sequence[ui.Item]:
         """Build page body for MapSearchView."""
         data = self.current_page
         res = []
         for _map in data:
+            completion_text = self.build_completion_text(_map)
+
             title = f"### {_map.title}" if _map.title is not None else ""
-            code_block = f"\n```{_map.code}```\n"
+            code_block = f"\n```{_map.code} {completion_text}```\n"
             if self.enable_cn_translation:
                 details = CNTranslatedFilteredFormatter(_map, filter_fields=("Code", "Title")).format()
             else:
@@ -321,7 +350,7 @@ class MapSearchCog(BaseCog):
         else:
             official_val = False
         if code:
-            maps = [await self.bot.api.get_map(code=code)]
+            maps = [await self.bot.api.get_map(code=code, user_id=itx.user.id)]
         else:
             maps = await self.bot.api.get_maps(
                 map_name=[map_name] if map_name else None,
@@ -336,6 +365,7 @@ class MapSearchCog(BaseCog):
                 completion_filter=completion_filter,
                 category=[category] if category else None,
                 return_all=True,
+                user_id=itx.user.id,
             )
         view = MapSearchView(maps)
         await itx.edit_original_response(view=view)
