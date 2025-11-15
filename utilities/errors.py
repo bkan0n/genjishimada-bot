@@ -71,18 +71,13 @@ class ReportIssueButton(ui.Button["ErrorView"]):
         modal = ReportIssueModal(original_itx=itx)
         await itx.response.send_modal(modal)
         event_id = None
-        if self.view.unknown_error:
-            with sentry_sdk.push_scope() as scope:
-                scope.set_user(
-                    {"id": str(self.view.exception_itx.user.id), "username": self.view.exception_itx.user.name}
-                )
-                scope.set_tag(
-                    "command", self.view.exception_itx.command.name if self.view.exception_itx.command else "unknown"
-                )
-                if self.view.exception_itx.namespace:
-                    scope.set_context(
-                        "Command Args", {"Args": dict(self.view.exception_itx.namespace.__dict__.items())}
-                    )
+        with sentry_sdk.push_scope() as scope:
+            scope.set_user({"id": str(self.view.exception_itx.user.id), "username": self.view.exception_itx.user.name})
+            scope.set_tag(
+                "command", self.view.exception_itx.command.name if self.view.exception_itx.command else "unknown"
+            )
+            if self.view.exception_itx.namespace:
+                scope.set_context("Command Args", {"Args": dict(self.view.exception_itx.namespace.__dict__.items())})
 
         event_id = sentry_sdk.capture_exception(self.view.exc)
         await modal.wait()
