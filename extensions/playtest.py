@@ -1232,7 +1232,7 @@ class FinalizeButton(discord.ui.Button["PlaytestComponentsV2View"]):
             AttributeError: If the map data has no playtest meta.
         """
         if itx.user.id not in (c.id for c in self.view.data.creators):
-            raise UserFacingError("YOu cannot use this button.")
+            raise UserFacingError("You cannot use this button.")
         self.view.data.override_finalize = False
         _view = self.view
         self.view.rebuild_components()
