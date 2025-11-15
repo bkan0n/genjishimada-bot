@@ -217,6 +217,7 @@ class RabbitService:
 
     async def _dlq_processor_loop(self) -> None:
         """Periodic DLQ sweep loop."""
+        await self._bot.wait_until_ready()
         while True:
             try:
                 processed = await self._process_all_dlqs_once()
