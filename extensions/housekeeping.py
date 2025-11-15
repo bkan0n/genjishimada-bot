@@ -10,7 +10,6 @@ from genjipk_sdk.models import PlaytestPatchDTO
 
 from extensions.playtest import MapFinalizationViewV2, PlaytestCog
 from utilities.base import BaseCog
-from utilities.errors import UserFacingError
 
 if TYPE_CHECKING:
     from core import Genji
@@ -121,17 +120,15 @@ class HousekeepingCog(BaseCog):
         await itx.response.defer(ephemeral=True, thinking=True)
         if message.channel.id == self.bot.config.channels.submission.verification_queue:
             saved_view = self.bot.completions.verification_views.get(message.id, None)
-            if not saved_view:
-                raise UserFacingError("Looks like there is no view associated with this message.")
-            for c in saved_view.walk_children():
-                if isinstance(c, ui.Button):
-                    c.disabled = False
-            await message.edit(view=saved_view)
-
-        if message.channel.id == itx.client.config.channels.submission.playtest:
+            if saved_view:
+                for c in saved_view.walk_children():
+                    if isinstance(c, ui.Button):
+                        c.disabled = False
+                await message.edit(view=saved_view)
+                return
             cog: "PlaytestCog" = self.bot.get_cog("PlaytestCog")  # pyright: ignore[reportAssignmentType]
             if _view := cog.verification_views.get(message.id):
-                await message.edit(view=saved_view)
+                await message.edit(view=_view)
 
         await itx.edit_original_response(content="The view has been repaired.")
 
