@@ -93,7 +93,7 @@ class ReportIssueButton(ui.Button["ErrorView"]):
                 data["event_id"] = event_id
             print(SENTRY_FEEDBACK_URL)
             print(data)
-            await itx.client.session.post(
+            resp = await itx.client.session.post(
                 SENTRY_FEEDBACK_URL,
                 headers={
                     "Authorization": f"Bearer {SENTRY_AUTH_TOKEN}",
@@ -101,6 +101,8 @@ class ReportIssueButton(ui.Button["ErrorView"]):
                 },
                 json=data,
             )
+            t = await resp.text()
+            print(t)
         self.view.stop()
 
 
