@@ -70,7 +70,6 @@ class ReportIssueButton(ui.Button["ErrorView"]):
         """Callback."""
         modal = ReportIssueModal(original_itx=itx)
         await itx.response.send_modal(modal)
-        await modal.wait()
         event_id = None
         with sentry_sdk.push_scope() as scope:
             scope.set_user({"id": str(self.view.exception_itx.user.id), "username": self.view.exception_itx.user.name})
@@ -99,6 +98,7 @@ class ReportIssueButton(ui.Button["ErrorView"]):
                 },
                 json=data,
             )
+        self.view.stop()
 
 
 class ErrorView(BaseView):
