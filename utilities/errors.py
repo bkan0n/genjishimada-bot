@@ -79,31 +79,31 @@ class ReportIssueButton(ui.Button["ErrorView"]):
             if self.view.exception_itx.namespace:
                 scope.set_context("Command Args", {"Args": dict(self.view.exception_itx.namespace.__dict__.items())})
 
-        event_id = sentry_sdk.capture_exception(self.view.exc)
-        print(event_id)
-        await modal.wait()
+            event_id = sentry_sdk.capture_exception(self.view.exc)
+            print(event_id)
+            await modal.wait()
 
-        if modal.feedback.value is not None:
-            data = {
-                "name": f"{self.view.exception_itx.user.name} ({self.view.exception_itx.user.id})",
-                "email": "genjishimada@bkan0n.com",
-                "comments": modal.feedback.value,
-            }
-            if event_id is not None:
-                data["event_id"] = event_id
-            print(SENTRY_FEEDBACK_URL)
-            print(data)
-            resp = await itx.client.session.post(
-                SENTRY_FEEDBACK_URL,
-                headers={
-                    "Authorization": f"Bearer {SENTRY_AUTH_TOKEN}",
-                    "Content-Type": "application/json",
-                },
-                json=data,
-            )
-            t = await resp.text()
-            print(t)
-        self.view.stop()
+            if modal.feedback.value is not None:
+                data = {
+                    "name": f"{self.view.exception_itx.user.name} ({self.view.exception_itx.user.id})",
+                    "email": "genjishimada@bkan0n.com",
+                    "comments": modal.feedback.value,
+                }
+                if event_id is not None:
+                    data["event_id"] = event_id
+                print(SENTRY_FEEDBACK_URL)
+                print(data)
+                resp = await itx.client.session.post(
+                    SENTRY_FEEDBACK_URL,
+                    headers={
+                        "Authorization": f"Bearer {SENTRY_AUTH_TOKEN}",
+                        "Content-Type": "application/json",
+                    },
+                    json=data,
+                )
+                t = await resp.text()
+                print(t)
+            self.view.stop()
 
 
 class ErrorView(BaseView):
