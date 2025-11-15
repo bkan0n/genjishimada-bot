@@ -64,7 +64,7 @@ class EventsCog(BaseCog):
         Args:
             member (Member): The newly joined member.
         """
-        if not self.bot.api.check_user_exists(member.id):
+        if not await self.bot.api.check_user_exists(member.id):
             data = UserCreateDTO(
                 member.id,
                 member.global_name or member.name,
