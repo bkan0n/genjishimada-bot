@@ -130,6 +130,7 @@ class HousekeepingCog(BaseCog):
 
         await itx.edit_original_response(content="The view has been repaired.")
 
+    @commands.command()
     async def playtest_fix(self, ctx: GenjiCtx) -> None:
         p_ids = (
             (142, "001XK", None),
