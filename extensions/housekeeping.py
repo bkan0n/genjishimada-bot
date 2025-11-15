@@ -118,6 +118,7 @@ class HousekeepingCog(BaseCog):
     async def repair(self, itx: GenjiItx, message: discord.Message) -> None:
         """Repair broken views."""
         await itx.response.defer(ephemeral=True, thinking=True)
+        cog: "PlaytestCog" = self.bot.get_cog("PlaytestCog")  # pyright: ignore[reportAssignmentType]
         if message.channel.id == self.bot.config.channels.submission.verification_queue:
             saved_view = self.bot.completions.verification_views.get(message.id, None)
             if saved_view:
@@ -125,9 +126,15 @@ class HousekeepingCog(BaseCog):
                     if isinstance(c, ui.Button):
                         c.disabled = False
                 await message.edit(view=saved_view)
-                return
-            cog: "PlaytestCog" = self.bot.get_cog("PlaytestCog")  # pyright: ignore[reportAssignmentType]
-            if _view := cog.verification_views.get(message.id):
+            elif _view := cog.verification_views.get(message.id):
+                await message.edit(view=_view)
+
+        elif (
+            isinstance(message.thread, discord.Thread)
+            and message.thread.parent
+            and message.thread.parent.id == self.bot.config.channels.submission.playtest
+        ):
+            if _view := cog.playtest_views.get(message.id):
                 await message.edit(view=_view)
 
         await itx.edit_original_response(content="The view has been repaired.")
