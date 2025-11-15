@@ -52,7 +52,7 @@ def setup_logging() -> Iterator[None]:
         logging.getLogger("discord.state").addFilter(RemoveNoise())
         logging.getLogger("discord.client").addFilter(RemoveShardCloseNoise())
         log.setLevel(logging.INFO)
-        if BOT_ENVIRONMENT == "development":
+        if True or BOT_ENVIRONMENT == "development":
             logging.getLogger("core").setLevel(logging.DEBUG)
             logging.getLogger("extensions").setLevel(logging.DEBUG)
             logging.getLogger("utilities").setLevel(logging.DEBUG)
