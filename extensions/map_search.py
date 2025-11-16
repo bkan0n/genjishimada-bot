@@ -142,7 +142,7 @@ CN_TRANSLATIONS_FIELDS_TEMP = {
 _CNTriFilter = Literal["全部", "包含", "不包含"]
 CNCompletionFilter = _CNTriFilter
 CNMedalFilter = _CNTriFilter
-CNPlaytestFilter = _CNTriFilter
+CNPlaytestFilter = Literal["全部", "仅有的", "没有任何"]
 CNOfficialFilter = Literal["全部", "仅限官方", "非官方（CN）"]
 
 CN_FILTER_TRANSLATIONS_TEMP: dict[_CNTriFilter, CompletionFilter] = {
@@ -150,10 +150,17 @@ CN_FILTER_TRANSLATIONS_TEMP: dict[_CNTriFilter, CompletionFilter] = {
     "包含": "With",
     "不包含": "Without",
 }
+
 CN_FILTER_2_TRANSLATIONS_TEMP: dict[OfficialFilter, CNOfficialFilter] = {
     "All": "全部",
     "Official Only": "仅限官方",
     "Unofficial (CN) Only": "非官方（CN）",
+}
+
+CN_FILTER_3_TRANSLATION_TEMP: dict[CNPlaytestFilter, PlaytestFilter] = {
+    "全部": "All",
+    "仅有的": "Only",
+    "没有任何": "None",
 }
 
 
@@ -340,7 +347,6 @@ class MapSearchCog(BaseCog):
             playtest_filter: Filter imaps by playtest state. Defaults to "All".
         """
         await itx.response.defer(ephemeral=True)
-        log.debug(f"THIS IS WHAT THE VALUE IS HERE===={playtest_filter}")
         restrictions: list[Restrictions] | None = [restriction] if restriction else None
         mechanics: list[Mechanics] | None = [mechanic] if mechanic else None
         if official_filter == "All":
@@ -366,6 +372,8 @@ class MapSearchCog(BaseCog):
                 category=[category] if category else None,
                 return_all=True,
                 user_id=itx.user.id,
+                archived=False,
+                hidden=False,
             )
         view = MapSearchView(maps)
         await itx.edit_original_response(view=view)
@@ -461,11 +469,14 @@ class MapSearchCog(BaseCog):
                 difficulty_exact=cast("DifficultyTop", difficulty.value) if difficulty else None,
                 minimum_quality=minimum_quality.value if minimum_quality else None,
                 creator_ids=[creator] if creator else None,
-                playtest_filter=CN_FILTER_TRANSLATIONS_TEMP[playtest_filter],
+                playtest_filter=CN_FILTER_3_TRANSLATION_TEMP[playtest_filter],
                 medal_filter=CN_FILTER_TRANSLATIONS_TEMP[medal_filter],
                 completion_filter=CN_FILTER_TRANSLATIONS_TEMP[completion_filter],
                 category=[category] if category else None,
                 return_all=True,
+                user_id=itx.user.id,
+                archived=False,
+                hidden=False,
             )
         view = MapSearchView(maps, enable_cn_translation=True)
         await itx.edit_original_response(view=view)
