@@ -844,6 +844,7 @@ class NewsfeedService:
                 log.warning("Newsfeed id %s not found via API.", qmsg.newsfeed_id)
                 return
 
+            cog: "PlaytestCog" = self._bot.cogs["PlaytestCog"]  # pyright: ignore[reportAssignmentType]
             if event.event_type == "map_edit":
                 assert isinstance(event.payload, NewsfeedMapEdit)
                 for change in event.payload.changes:
@@ -857,7 +858,7 @@ class NewsfeedService:
                     assert guild and _map.playtest
                     thread = guild.get_thread(_map.playtest.thread_id)
                     await self._publish_event(event, channel=thread)
-                    cog: "PlaytestCog" = self._bot.cogs["PlaytestCog"]  # pyright: ignore[reportAssignmentType]
+
                     view = cog.playtest_views[_map.playtest.thread_id]
                     await view.fetch_data_and_rebuild(self._bot)
                     if not thread:
@@ -866,6 +867,24 @@ class NewsfeedService:
                     m = thread.get_partial_message(_map.playtest.thread_id)
                     await m.edit(view=view)
                     return
+
+            if event.event_type == "guide":
+                assert isinstance(event.payload, NewsfeedGuide)
+                _map = await self._bot.api.get_map(code=event.payload.code)
+                if _map.playtesting == "In Progress":
+                    guild = self._bot.get_guild(self._bot.config.guild)
+                    assert guild and _map.playtest
+                    thread = guild.get_thread(_map.playtest.thread_id)
+                    await self._publish_event(event, channel=thread)
+                    view = cog.playtest_views[_map.playtest.thread_id]
+                    await view.fetch_data_and_rebuild(self._bot)
+                    if not thread:
+                        log.warning(f"Was not able to find thread for playtest view. {_map.playtest.thread_id}")
+                        return
+                    m = thread.get_partial_message(_map.playtest.thread_id)
+                    await m.edit(view=view)
+                    return
+
             await self._publish_event(event)
 
         except Exception:
