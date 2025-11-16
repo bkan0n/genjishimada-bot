@@ -193,6 +193,8 @@ class ModeratorCog(BaseCog):
         """
         await itx.response.defer(ephemeral=True)
         guides = await itx.client.api.get_guides(code)
+        if not guides:
+            raise UserFacingError("There are no guides for this map.")
         view = ModGuidePaginatorView(code, guides, itx.client)
         await itx.edit_original_response(view=view)
         view.original_interaction = itx
