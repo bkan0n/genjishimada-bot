@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import TYPE_CHECKING
 
 import aiohttp
 import discord
@@ -7,14 +8,16 @@ from discord.ext import commands
 
 import extensions
 import utilities.config
-from extensions.api_service import APIService
-from extensions.completions import CompletionsService
-from extensions.newsfeed import NewsfeedService
-from extensions.notifications import NotificationService
-from extensions.playtest import PlaytestService
-from extensions.rabbit import RabbitService
-from extensions.video_thumbnail import VideoThumbnailService
-from extensions.xp import XPService
+
+if TYPE_CHECKING:
+    from extensions.api_service import APIService
+    from extensions.completions import CompletionsService
+    from extensions.newsfeed import NewsfeedService
+    from extensions.notifications import NotificationService
+    from extensions.playtest import PlaytestService
+    from extensions.rabbit import RabbitService
+    from extensions.video_thumbnail import VideoThumbnailService
+    from extensions.xp import XPService
 
 __all__ = ("Genji",)
 

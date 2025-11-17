@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Literal
 import discord
 from discord import TextChannel, app_commands, ui
 from discord.ext import commands
-from genjipk_sdk.models import PlaytestPatchDTO
+from genjipk_sdk.maps import PlaytestPatchRequest
 
 from extensions.playtest import MapFinalizationViewV2, PlaytestCog
 from utilities.base import BaseCog
@@ -214,7 +214,7 @@ class HousekeepingCog(BaseCog):
                 data = await ctx.bot.api.get_map(code=code)
                 view = MapFinalizationViewV2(ctx.guild.id, data)
                 verification_message = await verification_channel.send(view=view)
-                playtest_edit_data = PlaytestPatchDTO(verification_id=verification_message.id)
+                playtest_edit_data = PlaytestPatchRequest(verification_id=verification_message.id)
                 if not data.playtest:
                     raise AttributeError("The data is missing playtest.")
                 await ctx.bot.api.edit_playtest_meta(thread_id=data.playtest.thread_id, data=playtest_edit_data)

@@ -18,22 +18,26 @@ from discord.ui import (
     Thumbnail,
 )
 from discord.utils import maybe_coroutine
-from genjipk_sdk.models import NewsfeedEvent, NewsfeedLinkedMap, NewsfeedQueueMessage, NewsfeedUnlinkedMap
-from genjipk_sdk.models.jobs import ClaimRequest
-from genjipk_sdk.models.newsfeed import (
+from genjipk_sdk.difficulties import DIFFICULTY_TO_RANK_MAP, DifficultyAll, convert_extended_difficulty_to_top_level
+from genjipk_sdk.internal import ClaimCreateRequest
+from genjipk_sdk.maps import GuideURL, OverwatchCode, OverwatchMap
+from genjipk_sdk.newsfeed import (
     NewsfeedAnnouncement,
     NewsfeedArchive,
     NewsfeedBulkArchive,
     NewsfeedBulkUnarchive,
+    NewsfeedDispatchEvent,
+    NewsfeedEvent,
     NewsfeedGuide,
     NewsfeedLegacyRecord,
+    NewsfeedLinkedMap,
     NewsfeedMapEdit,
     NewsfeedNewMap,
     NewsfeedRecord,
     NewsfeedRole,
     NewsfeedUnarchive,
+    NewsfeedUnlinkedMap,
 )
-from genjipk_sdk.utilities import DIFFICULTY_TO_RANK_MAP, DifficultyAll, convert_extended_difficulty_to_top_level
 
 from extensions._queue_registry import register_queue_handler
 from utilities.completions import get_completion_icon_url
@@ -41,7 +45,6 @@ from utilities.formatter import FilteredFormatter, FormattableProtocol
 
 if TYPE_CHECKING:
     from aio_pika.abc import AbstractIncomingMessage
-    from genjipk_sdk.utilities._types import GuideURL, OverwatchCode, OverwatchMap
 
     import core
     from extensions.playtest import PlaytestCog
@@ -817,21 +820,21 @@ class NewsfeedService:
         view.stop()
 
     @register_queue_handler("api.newsfeed.create")
-    async def _process_newsfeed_create(self, message: AbstractIncomingMessage) -> None:
+    async def _process_newsfeed_create(self, message: AbstractIncomingMessage) -> None:  # noqa: PLR0911, PLR0912
         """Consume and handle a message indicating a new Newsfeed event was created.
 
         Args:
             message (AbstractIncomingMessage): The incoming message from the queue.
         """
         try:
-            qmsg = msgspec.json.decode(message.body, type=NewsfeedQueueMessage)
+            qmsg = msgspec.json.decode(message.body, type=NewsfeedDispatchEvent)
 
             if message.headers.get("x-pytest-enabled"):
                 log.debug("[RabbitMQ] Pytest message received; skipping publish.")
                 return
 
             assert message.message_id
-            data = ClaimRequest(message.message_id)
+            data = ClaimCreateRequest(message.message_id)
             res = await self._bot.api.claim_idempotency(data)
             if not res.claimed:
                 log.debug("[Idempotency] Duplicate: %s", message.message_id)

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from genjipk_sdk.models import Notification
+from genjipk_sdk.users import Notification
 
 if TYPE_CHECKING:
     import discord

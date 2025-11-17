@@ -8,7 +8,8 @@ import discord
 from discord import Member, User
 from discord.app_commands import Command, ContextMenu
 from discord.ext import commands, tasks
-from genjipk_sdk.models import NewsfeedAnnouncement, NewsfeedEvent, UserCreateDTO, UserUpdateDTO
+from genjipk_sdk.newsfeed import NewsfeedAnnouncement, NewsfeedEvent
+from genjipk_sdk.users import UserCreateRequest, UserUpdateRequest
 
 from utilities.base import BaseCog
 
@@ -65,7 +66,7 @@ class EventsCog(BaseCog):
             member (Member): The newly joined member.
         """
         if not await self.bot.api.check_user_exists(member.id):
-            data = UserCreateDTO(
+            data = UserCreateRequest(
                 member.id,
                 member.global_name or member.name,
                 member.nick or member.name,
@@ -90,7 +91,7 @@ class EventsCog(BaseCog):
             after (Member): Member state after the update.
         """
         if before.nick != after.nick and after.nick is not None:
-            data = UserUpdateDTO(nickname=after.nick)
+            data = UserUpdateRequest(nickname=after.nick)
             await self.bot.api.update_user_names(after.id, data)
 
     @commands.Cog.listener()
@@ -102,7 +103,7 @@ class EventsCog(BaseCog):
             after (User): User state after the update.
         """
         if before.global_name != after.global_name and after.global_name is not None:
-            data = UserUpdateDTO(global_name=after.global_name)
+            data = UserUpdateRequest(global_name=after.global_name)
             await self.bot.api.update_user_names(after.id, data)
 
     @tasks.loop(minutes=1)

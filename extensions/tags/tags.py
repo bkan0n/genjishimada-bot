@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Iterable, Literal, Optional, S
 import discord
 from discord import Message, app_commands
 from discord.ext import commands
-from genjipk_sdk.models.tags import (
+from genjipk_sdk.tags import (
     OpAlias,
     OpClaim,
     OpCreate,

@@ -25,30 +25,24 @@ from discord import (
     ui,
     utils,
 )
-from genjipk_sdk.models import (
-    CompletionPatchDTO,
-    CompletionReadDTO,
-    MapMasteryCreateDTO,
-    MessageQueueCompletionsCreate,
-    MessageQueueVerificationChange,
-    NewsfeedEvent,
-    NewsfeedRecord,
-    NewsfeedRole,
-    Notification,
-    UpvoteUpdateDTO,
-)
-from genjipk_sdk.models.completions import (
-    CompletionVerificationPutDTO,
-    FailedAutoverifyMessage,
-    QualityUpdateDTO,
-    SuspiciousCompletionWriteDTO,
+from genjipk_sdk.completions import (
+    CompletionCreatedEvent,
+    CompletionPatchRequest,
+    CompletionResponse,
+    CompletionVerificationUpdateRequest,
+    FailedAutoverifyEvent,
+    QualityUpdateRequest,
+    SuspiciousCompletionCreateRequest,
     SuspiciousFlag,
-    UpvoteCreateDTO,
+    UpvoteCreateRequest,
+    UpvoteUpdateEvent,
+    VerificationChangedEvent,
 )
-from genjipk_sdk.models.jobs import ClaimRequest
-from genjipk_sdk.models.users import RankDetailReadDTO
-from genjipk_sdk.utilities import DIFFICULTY_TO_RANK_MAP, DifficultyAll
-from genjipk_sdk.utilities._types import OverwatchCode
+from genjipk_sdk.difficulties import DIFFICULTY_TO_RANK_MAP, DifficultyAll
+from genjipk_sdk.internal import ClaimCreateRequest
+from genjipk_sdk.maps import MapMasteryCreateRequest, OverwatchCode
+from genjipk_sdk.newsfeed import NewsfeedEvent, NewsfeedRecord, NewsfeedRole
+from genjipk_sdk.users import Notification, RankDetailResponse
 
 from extensions._queue_registry import register_queue_handler
 from utilities import transformers
@@ -120,7 +114,8 @@ class CompletionsVerificationAcceptButton(ui.Button):
         if itx.message:
             await itx.message.edit(view=self.view)
         job_status = await self.view.bot.api.verify_completion(
-            self.view.data.id, data=CompletionVerificationPutDTO(verified_by=itx.user.id, verified=True, reason=None)
+            self.view.data.id,
+            data=CompletionVerificationUpdateRequest(verified_by=itx.user.id, verified=True, reason=None),
         )
         job = await poll_job_until_complete(itx.client.api, job_status.id)
 
@@ -176,7 +171,9 @@ class CompletionsVerificationRejectButton(ui.Button):
 
         await self.view.bot.api.verify_completion(
             self.view.data.id,
-            data=CompletionVerificationPutDTO(verified_by=itx.user.id, verified=False, reason=modal.reason.value),
+            data=CompletionVerificationUpdateRequest(
+                verified_by=itx.user.id, verified=False, reason=modal.reason.value
+            ),
         )
         await itx.followup.send(
             content=(
@@ -408,7 +405,7 @@ class CompletionLikeButton(ui.DynamicItem[ui.Button["CompletionView"]], template
         """
         await itx.response.defer(ephemeral=True)
         assert itx.message
-        data = UpvoteCreateDTO(
+        data = UpvoteCreateRequest(
             user_id=itx.user.id,
             message_id=itx.message.id,
         )
@@ -516,7 +513,7 @@ class CompletionsService(BaseService):
     @register_queue_handler("api.completion.autoverification.failed")
     async def _process_autoverification_failed(self, message: AbstractIncomingMessage) -> None:
         try:
-            struct = msgspec.json.decode(message.body, type=FailedAutoverifyMessage)
+            struct = msgspec.json.decode(message.body, type=FailedAutoverifyEvent)
             if message.headers.get("x-pytest-enabled", False):
                 log.debug("Pytest message received.")
                 return
@@ -557,7 +554,7 @@ class CompletionsService(BaseService):
             message (AbstractIncomingMessage): The received message from the queue.
         """
         try:
-            struct = msgspec.json.decode(message.body, type=UpvoteUpdateDTO)
+            struct = msgspec.json.decode(message.body, type=UpvoteUpdateEvent)
             if message.headers.get("x-pytest-enabled", False):
                 log.debug("Pytest message received.")
                 return
@@ -568,14 +565,14 @@ class CompletionsService(BaseService):
         except Exception as e:
             raise e
 
-    async def _handle_upvote_forwarding(self, data: UpvoteUpdateDTO) -> None:
+    async def _handle_upvote_forwarding(self, data: UpvoteUpdateEvent) -> None:
         """Forward a submission message to the upvote channel.
 
         Retrieves the partial message by ID from the submission channel and
         forwards it to the configured upvote channel.
 
         Args:
-            data: UpvoteUpdateDTO
+            data: UpvoteUpdateEvent
         """
         partial_message = self.submission_channel.get_partial_message(data.message_id)
         message = await partial_message.fetch()
@@ -599,13 +596,13 @@ class CompletionsService(BaseService):
             message (AbstractIncomingMessage): The received message from the queue.
         """
         try:
-            struct = msgspec.json.decode(message.body, type=MessageQueueCompletionsCreate)
+            struct = msgspec.json.decode(message.body, type=CompletionCreatedEvent)
             if message.headers.get("x-pytest-enabled", False):
                 log.debug("Pytest message received.")
                 return
 
             assert message.message_id
-            data = ClaimRequest(message.message_id)
+            data = ClaimCreateRequest(message.message_id)
             res = await self.bot.api.claim_idempotency(data)
             if not res.claimed:
                 log.debug("[Idempotency] Duplicate: %s", message.message_id)
@@ -626,13 +623,13 @@ class CompletionsService(BaseService):
             message (AbstractIncomingMessage): The received message from the queue.
         """
         try:
-            struct = msgspec.json.decode(message.body, type=MessageQueueVerificationChange)
+            struct = msgspec.json.decode(message.body, type=VerificationChangedEvent)
             if message.headers.get("x-pytest-enabled", False):
                 log.debug("Pytest message received.")
                 return
 
             assert message.message_id
-            data = ClaimRequest(message.message_id)
+            data = ClaimCreateRequest(message.message_id)
             res = await self.bot.api.claim_idempotency(data)
             if not res.claimed:
                 log.debug("[Idempotency] Duplicate: %s", message.message_id)
@@ -654,7 +651,7 @@ class CompletionsService(BaseService):
         data = await self.bot.api.get_completion_submission(record_id)
         view = CompletionVerificationView(data, self.bot)
         message = await self.verification_channel.send(view=view)
-        await self.bot.api.edit_completion(record_id, data=CompletionPatchDTO(verification_id=message.id))
+        await self.bot.api.edit_completion(record_id, data=CompletionPatchRequest(verification_id=message.id))
         self.verification_views[message.id] = view
 
     async def _emit_newsfeed_for_record(self, data: CompletionSubmissionModel) -> None:
@@ -675,11 +672,11 @@ class CompletionsService(BaseService):
         event = NewsfeedEvent(id=None, timestamp=discord.utils.utcnow(), payload=payload, event_type="record")
         await self.bot.api.create_newsfeed(event)
 
-    async def _handle_verification_status_change(self, data: MessageQueueVerificationChange) -> None:
+    async def _handle_verification_status_change(self, data: VerificationChangedEvent) -> None:
         """Handle the change of verification status for a particular record_id.
 
         Args:
-            data (MessageQueueVerificationChange): Incoming data for verification status change message.
+            data (VerificationChangedEvent): Incoming data for verification status change message.
         """
         _data = await self.bot.api.get_completion_submission(data.completion_id)
         completion_data = msgspec.convert(_data, CompletionPostVerificationModel, from_attributes=True)
@@ -695,7 +692,7 @@ class CompletionsService(BaseService):
         view = CompletionView(completion_data, verifier_name=verifier_name)
         if data.verified:
             message = await self.submission_channel.send(view=view)
-            await self.bot.api.edit_completion(data.completion_id, data=CompletionPatchDTO(message_id=message.id))
+            await self.bot.api.edit_completion(data.completion_id, data=CompletionPatchRequest(message_id=message.id))
             if should_notify and member:
                 completion_data = await self.bot.api.get_completion_submission(data.completion_id)
                 _view = CompletionView(completion_data, is_dm=True, verifier_name=verifier_name)
@@ -712,7 +709,9 @@ class CompletionsService(BaseService):
                 )
                 if not previously_granted:
                     await self.bot.xp.grant_user_xp_of_type(completion_data.user_id, "World Record")
-                    await self.bot.api.edit_completion(data.completion_id, data=CompletionPatchDTO(wr_xp_check=True))
+                    await self.bot.api.edit_completion(
+                        data.completion_id, data=CompletionPatchRequest(wr_xp_check=True)
+                    )
                 await self._emit_newsfeed_for_record(completion_data)
             # Record
             if (
@@ -758,7 +757,7 @@ class CompletionsService(BaseService):
             raise ValueError("User doesn't exist?")
         for m in mastery_data:
             assert m.level
-            data = MapMasteryCreateDTO(user_id, m.map_name, m.level)
+            data = MapMasteryCreateRequest(user_id, m.map_name, m.level)
             updated_mastery = await self.bot.api.update_mastery(data)
             if not updated_mastery or updated_mastery.medal == "Placeholder":
                 continue
@@ -782,7 +781,7 @@ class CompletionsService(BaseService):
 
     def _determine_skill_rank_roles_to_give(
         self,
-        data: list[RankDetailReadDTO],
+        data: list[RankDetailResponse],
     ) -> tuple[list[Role], list[Role]]:
         """Determine skill rank roles to give to a member."""
         roles_to_grant = []
@@ -890,7 +889,7 @@ class CompletionsService(BaseService):
                 await self.auto_skill_role(member)
 
 
-class CompletionLeaderboardFormattable(CompletionReadDTO):
+class CompletionLeaderboardFormattable(CompletionResponse):
     def to_format_dict(self) -> dict[str, Any]:
         """Convert the struct to a dictionary for rendering.
 
@@ -905,7 +904,7 @@ class CompletionLeaderboardFormattable(CompletionReadDTO):
         }
 
 
-class CompletionUserFormattable(CompletionReadDTO):
+class CompletionUserFormattable(CompletionResponse):
     def to_format_dict(self) -> dict[str, Any]:
         """Convert the struct to a dictionary for rendering.
 
@@ -1076,7 +1075,7 @@ class SetSuspiciousModal(ui.Modal):
     async def on_submit(self, itx: GenjiItx) -> None:
         """Handle modal submission to add a suspicious flag.
 
-        Validates the flag type, builds a `SuspiciousCompletionWriteDTO`,
+        Validates the flag type, builds a `SuspiciousCompletionCreateRequest`,
         and submits it to the API. Responds to the user with success or
         validation error messages.
 
@@ -1089,7 +1088,7 @@ class SetSuspiciousModal(ui.Modal):
                 content=f"Flag type must be one of `{', '.join(get_args(SuspiciousFlag))}`",
             )
             return
-        data = SuspiciousCompletionWriteDTO(
+        data = SuspiciousCompletionCreateRequest(
             message_id=self.message_id,
             verification_id=self.verification_id,
             flag_type=self.flag_type.component.values[0],  # type: ignore
@@ -1348,7 +1347,7 @@ class CompletionsCog(BaseCog):
             _data_with_job_status = await itx.client.api.submit_completion(data)
         except APIHTTPError as e:
             raise UserFacingError(e.error)
-        await itx.client.api.set_quality_vote(data.code, QualityUpdateDTO(data.user_id, quality.value))
+        await itx.client.api.set_quality_vote(data.code, QualityUpdateRequest(data.user_id, quality.value))
         data = await self.bot.api.get_completion_submission(_data_with_job_status.completion_id)
 
         map_data = await self.bot.api.get_map(code=data.code)

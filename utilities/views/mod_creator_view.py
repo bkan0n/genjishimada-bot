@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING, Any, cast
 import msgspec
 from discord import ButtonStyle, ui
 from discord.app_commands import AppCommandError
-from genjipk_sdk.models import MAX_CREATORS, Creator, CreatorFull, MapPatchDTO, UserReadDTO
+from genjipk_sdk.maps import MAX_CREATORS, MapPatchRequest
+from genjipk_sdk.users import Creator, CreatorFull, UserResponse
 
 from utilities.base import BaseView, ConfirmationView
 from utilities.formatter import FilteredFormatter
@@ -38,7 +39,7 @@ class FormattableCreator(CreatorFull):
         return f"<@{self.id}>"
 
 
-class FormattableUser(UserReadDTO):
+class FormattableUser(UserResponse):
     def to_format_dict(self) -> dict:
         """Convert the creator to a dictionary for formatted rendering.
 
@@ -107,7 +108,7 @@ class EditCreatorIDModal(ui.Modal):
             )
             edited_creator = Creator(id=int(self.user_id.value), is_primary=self._creator.is_primary)
             new_creators.append(edited_creator)
-            new_data = MapPatchDTO(creators=new_creators)
+            new_data = MapPatchRequest(creators=new_creators)
             await itx.client.api.edit_map(self._data.code, data=new_data)
             await self._original_view.refresh_data(self._original_itx)
 
@@ -160,7 +161,7 @@ class AddCreatorIDModal(ui.Modal):
             new_creators = msgspec.convert(self._data.creators, list[Creator], from_attributes=True)
             edited_creator = Creator(id=int(self.user_id.value), is_primary=False)
             new_creators.append(edited_creator)
-            new_data = MapPatchDTO(creators=new_creators)
+            new_data = MapPatchRequest(creators=new_creators)
             await itx.client.api.edit_map(self._data.code, data=new_data)
             await self._original_view.refresh_data(self._original_itx)
 
@@ -246,7 +247,7 @@ class RemoveCreatorButton(ui.Button["MapCreatorModView"]):
                 list[Creator],
                 from_attributes=True,
             )
-            new_data = MapPatchDTO(creators=new_creators)
+            new_data = MapPatchRequest(creators=new_creators)
             await itx.client.api.edit_map(self._data.code, data=new_data)
             assert self.view.original_interaction
             await self.view.refresh_data(self.view.original_interaction)
@@ -283,7 +284,7 @@ class SetPrimaryCreatorButton(ui.Button["MapCreatorModView"]):
         new_creators = msgspec.convert(self._data.creators, list[Creator], from_attributes=True)
         for c in new_creators:
             c.is_primary = c.id == self._creator.id
-        new_data = MapPatchDTO(creators=new_creators)
+        new_data = MapPatchRequest(creators=new_creators)
         await itx.client.api.edit_map(self._data.code, data=new_data)
         assert self.view.original_interaction
         await self.view.refresh_data(self.view.original_interaction)

@@ -1,8 +1,7 @@
 from logging import getLogger
 
-from genjipk_sdk.models import CompletionCreateDTO, CompletionSubmissionReadDTO
-from genjipk_sdk.models.completions import SuspiciousCompletionReadDTO
-from genjipk_sdk.utilities._types import MedalType
+from genjipk_sdk.completions import CompletionCreateRequest, CompletionSubmissionResponse, SuspiciousCompletionResponse
+from genjipk_sdk.maps import MedalType
 
 from .emojis import (
     VERIFIED_BRONZE,
@@ -19,7 +18,7 @@ from .emojis import (
 log = getLogger(__name__)
 
 
-class SuspiciousCompletionModel(SuspiciousCompletionReadDTO):
+class SuspiciousCompletionModel(SuspiciousCompletionResponse):
     def to_format_dict(self) -> dict[str, str | None]:
         """For use with Formatter."""
         return {
@@ -29,7 +28,7 @@ class SuspiciousCompletionModel(SuspiciousCompletionReadDTO):
         }
 
 
-class CompletionSubmissionModel(CompletionSubmissionReadDTO):
+class CompletionSubmissionModel(CompletionSubmissionResponse):
     def to_format_dict(self) -> dict[str, str | None]:
         """For use with Formatter."""
         description = {
@@ -93,7 +92,7 @@ class CompletionPostVerificationModel(CompletionSubmissionModel):
         return description
 
 
-class CompletionCreateModel(CompletionCreateDTO):
+class CompletionCreateModel(CompletionCreateRequest):
     def to_format_dict(self) -> dict[str, str | None]:
         """For use with Formatter."""
         description = {
@@ -119,7 +118,7 @@ _MEDAL_TO_WR = {
 }
 
 
-def get_completion_icon_emoji(rank: int | None, medal: "MedalType | None") -> str:
+def get_completion_icon_emoji(rank: int | None, medal: MedalType | None) -> str:
     """Return the emoji for a completion/record based on rank and medal.
 
     Rules:

@@ -7,15 +7,24 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast, get_args
 import discord
 import msgspec
 from discord.app_commands import AppCommandError
-from genjipk_sdk.models import Creator, MapCreateDTO, MapReadDTO, Medals
-from genjipk_sdk.utilities import (
+from genjipk_sdk.difficulties import (
     DIFFICULTY_RANGES_ALL,
-    PLAYTEST_VOTE_THRESHOLD,
     DifficultyAll,
     convert_raw_difficulty_to_difficulty_top,
+)
+from genjipk_sdk.maps import (
+    PLAYTEST_VOTE_THRESHOLD,
+    MapCategory,
+    MapCreateRequest,
+    MapResponse,
+    Mechanics,
+    MedalsResponse,
+    OverwatchCode,
+    OverwatchMap,
+    Restrictions,
     get_map_banner,
 )
-from genjipk_sdk.utilities._types import MapCategory, Mechanics, OverwatchCode, OverwatchMap, Restrictions
+from genjipk_sdk.users import Creator
 
 from utilities.base import BaseView
 from utilities.emojis import VERIFIED_BRONZE, VERIFIED_GOLD, VERIFIED_SILVER
@@ -48,7 +57,7 @@ def _remove_nulls(sequence: list[T] | None) -> list[T]:
     return [x for x in sequence if x is not None]
 
 
-class MapCreateModel(MapCreateDTO):
+class MapCreateModel(MapCreateRequest):
     def to_format_dict(self) -> dict[str, str | None]:
         """Return a dictionary representation for Formatter interpolation.
 
@@ -91,7 +100,7 @@ class MapCreateModel(MapCreateDTO):
         return get_map_banner(self.map_name)
 
 
-class MapModel(MapReadDTO):
+class MapModel(MapResponse):
     override_finalize: bool | None = None
 
     def to_format_dict(self) -> dict[str, str | None]:
@@ -235,7 +244,7 @@ class ContinueButton(discord.ui.Button["MapSubmissionView"]):
             mechanics=cast("list[Mechanics]", self.view.mechanics_select.values),
             restrictions=cast("list[Restrictions]", self.view.restrictions_select.values),
             description=self.view.data.description,
-            medals=Medals(self.view.data.gold, self.view.data.silver, self.view.data.bronze)
+            medals=MedalsResponse(self.view.data.gold, self.view.data.silver, self.view.data.bronze)
             if self.view.data.gold and self.view.data.silver and self.view.data.bronze
             else None,
             title=self.view.data.title,

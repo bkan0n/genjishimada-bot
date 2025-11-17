@@ -11,7 +11,7 @@ from utilities.extra import time_convert
 from utilities.maps import CODE_VERIFICATION
 
 if TYPE_CHECKING:
-    from genjipk_sdk.utilities._types import Mechanics, OverwatchMap, Restrictions
+    from genjipk_sdk.maps import Mechanics, OverwatchMap, Restrictions
 
     from ._types import GenjiItx
 

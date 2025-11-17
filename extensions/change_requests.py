@@ -10,8 +10,8 @@ import discord
 from discord import ButtonStyle, ForumChannel, Guild, SelectOption, TextStyle, ui
 from discord.app_commands import Transform, command
 from discord.ext import tasks
-from genjipk_sdk.models import ChangeRequestCreateDTO, ChangeRequestType
-from genjipk_sdk.utilities._types import OverwatchCode
+from genjipk_sdk.change_requests import ChangeRequestResponse, ChangeRequestType
+from genjipk_sdk.maps import OverwatchCode
 
 from utilities.base import BaseCog, BaseView
 from utilities.change_requests import FormattableChangeRequest, FormattableStaleChangeRequest
@@ -582,7 +582,7 @@ class ChangeRequestSubmitButton(ui.Button["ChangeRequestConfirmationView"]):
             content=content,
             applied_tags=self._construct_forum_tags(channel),
         )
-        change_request = ChangeRequestCreateDTO(
+        change_request = ChangeRequestResponse(
             thread_id=thread[0].id,
             user_id=itx.user.id,
             code=self.view.code,
