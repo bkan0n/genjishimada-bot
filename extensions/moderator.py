@@ -121,6 +121,7 @@ class EditMedalsModal(ui.Modal):
         view.original_interaction = itx
 
     async def on_error(self, itx: GenjiItx, error: Exception, /) -> None:
+        """Handle errors."""
         await itx.client.tree.on_error(itx, cast("app_commands.AppCommandError", error))
 
 

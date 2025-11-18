@@ -52,7 +52,7 @@ def setup_logging() -> Iterator[None]:
         logging.getLogger("discord.state").addFilter(RemoveNoise())
         logging.getLogger("discord.client").addFilter(RemoveShardCloseNoise())
         log.setLevel(logging.INFO)
-        if True or BOT_ENVIRONMENT == "development":
+        if BOT_ENVIRONMENT == "development":
             logging.getLogger("core").setLevel(logging.DEBUG)
             logging.getLogger("extensions").setLevel(logging.DEBUG)
             logging.getLogger("utilities").setLevel(logging.DEBUG)
@@ -79,7 +79,7 @@ async def main() -> None:
         integrations=[
             AsyncioIntegration(),
         ],
-        debug=True or BOT_ENVIRONMENT != "production",
+        debug=BOT_ENVIRONMENT != "production",
     )
 
     logging.getLogger("discord.gateway").setLevel("WARNING")
