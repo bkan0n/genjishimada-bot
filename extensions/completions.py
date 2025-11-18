@@ -1305,6 +1305,7 @@ class CompletionsCog(BaseCog):
             quality (int): Quality of the map
             video (str | None): Optional video URL (YouTube preferred).
         """
+        await itx.response.defer(ephemeral=True, thinking=True)
         channel_id = self.bot.config.channels.submission.completions
         assert itx.channel
         if itx.channel.id != channel_id:
@@ -1332,7 +1333,7 @@ class CompletionsCog(BaseCog):
         )
 
         view = ConfirmationView(message=message, image_url=screenshot.url)
-        await itx.response.send_message(view=view, ephemeral=True)
+        await itx.edit_original_response(view=view)
         await view.wait()
         if view.confirmed is not True:
             return
