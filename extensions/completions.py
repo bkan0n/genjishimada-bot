@@ -319,12 +319,7 @@ class CompletionVerificationView(ui.LayoutView):
         self.clear_items()
         container = ui.Container(
             ui.Section(
-                ui.TextDisplay(
-                    f"New Submission from {self.data.name}\n"
-                    + FilteredFormatter(self.data).format()
-                    + "\n"
-                    + self.data.get_verification_status_text()
-                ),
+                ui.TextDisplay(f"New Submission from {self.data.name}\n{FilteredFormatter(self.data).format()}"),
                 accessory=ui.Thumbnail(
                     get_completion_icon_url(
                         self.data.completion,
@@ -459,16 +454,14 @@ class CompletionView(ui.LayoutView):
 
         formatted_model = FilteredFormatter(self._data).format()
         playtest_text = (
-            (f"\nVisit the playtest thread for this map and vote if you haven't already.\n{self.playtest_jump_url}")
+            (f"Visit the playtest thread for this map and vote if you haven't already.\n{self.playtest_jump_url}")
             if self.playtest_jump_url
             else ""
         )
         container = ui.Container(
             ui.Section(
                 ui.TextDisplay(
-                    f"# New Submission from {self._data.name}\n{verifier_message}\n"
-                    f"{formatted_model}\n{self._data.get_verification_status_text()}"
-                    f"{playtest_text}"
+                    f"# New Submission from {self._data.name}\n{verifier_message}\n{formatted_model}\n{playtest_text}"
                 ),
                 accessory=ui.Thumbnail(
                     get_completion_icon_url(
