@@ -4,15 +4,8 @@ from logging import getLogger
 from typing import TYPE_CHECKING, Literal, Sequence, cast, get_args
 
 from discord import ButtonStyle, app_commands, ui
-from genjipk_sdk.utilities import DifficultyTop
-from genjipk_sdk.utilities._types import (
-    GuideURL,
-    MapCategory,
-    Mechanics,
-    OverwatchCode,
-    OverwatchMap,
-    Restrictions,
-)
+from genjipk_sdk.difficulties import DifficultyTop
+from genjipk_sdk.maps import GuideURL, MapCategory, Mechanics, OverwatchCode, OverwatchMap, Restrictions
 
 from extensions.api_service import CompletionFilter, MedalFilter, OfficialFilter, PlaytestFilter
 from utilities import transformers
@@ -45,15 +38,15 @@ CN_TRANSLATIONS_TEMP = {
     "Busan Downtown Lunar New Year": "春节釜山城区",
     "Busan Sanctuary Lunar New Year": "春节釜山寺院",
     "Busan Stadium": "釜山体育场",
-    "Busan Stadium Classic": "釜山体育场（经典）",
+    "Busan Stadium Classic": "釜山体育场（经典）",  # noqa: RUF001
     "Castillo": "城堡",
     "Château Guillard": "吉拉德堡",
     "Château Guillard Halloween": "万圣节吉拉德堡",
     "Circuit Royal": "皇家赛道",
     "Colosseo": "斗兽场",
     "Dorado": "多拉多",
-    "Ecopoint: Antarctica": "生态监测站：南极洲",
-    "Ecopoint: Antarctica Winter": "圣诞节生态监测站：南极洲",
+    "Ecopoint: Antarctica": "生态监测站：南极洲",  # noqa: RUF001
+    "Ecopoint: Antarctica Winter": "圣诞节生态监测站：南极洲",  # noqa: RUF001
     "Eichenwalde": "艾兴瓦尔德",
     "Eichenwalde Halloween": "万圣节艾兴瓦尔德",
     "Esperança": "埃斯佩兰萨",
@@ -108,17 +101,17 @@ CN_TRANSLATIONS_TEMP = {
     "Shambali Monastery": "香巴里寺院",
     "Suravasa": "苏拉瓦萨",
     "Sydney Harbour Arena": "悉尼海港竞技场",
-    "Sydney Harbour Arena Classic": "悉尼海港竞技场（经典）",
+    "Sydney Harbour Arena Classic": "悉尼海港竞技场（经典）",  # noqa: RUF001
     "Temple of Anubis": "阿努比斯神殿",
     "Throne of Anubis": "阿努比斯王座",
     "Volskaya Industries": "沃斯卡娅工业区",
-    "Watchpoint: Gibraltar": "监测站：直布罗陀",
+    "Watchpoint: Gibraltar": "监测站：直布罗陀",  # noqa: RUF001
     "Workshop Chamber": "地图工坊室内",
     "Workshop Expanse": "地图工坊空地",
-    "Workshop Expanse Night": "地图工坊空地（夜间）",
+    "Workshop Expanse Night": "地图工坊空地（夜间）",  # noqa: RUF001
     "Workshop Green Screen": "地图工坊绿幕",
     "Workshop Island": "地图工坊岛屿",
-    "Workshop Island Night": "地图工坊岛屿（夜间）",
+    "Workshop Island Night": "地图工坊岛屿（夜间）",  # noqa: RUF001
 }
 CN_TRANSLATIONS_FIELDS_TEMP = {
     "Code": "代码",
@@ -143,7 +136,7 @@ _CNTriFilter = Literal["全部", "包含", "不包含"]
 CNCompletionFilter = _CNTriFilter
 CNMedalFilter = _CNTriFilter
 CNPlaytestFilter = Literal["全部", "仅有的", "没有任何"]
-CNOfficialFilter = Literal["全部", "仅限官方", "非官方（CN）"]
+CNOfficialFilter = Literal["全部", "仅限官方", "非官方（CN）"]  # noqa: RUF001
 
 CN_FILTER_TRANSLATIONS_TEMP: dict[_CNTriFilter, CompletionFilter] = {
     "全部": "All",
@@ -154,7 +147,7 @@ CN_FILTER_TRANSLATIONS_TEMP: dict[_CNTriFilter, CompletionFilter] = {
 CN_FILTER_2_TRANSLATIONS_TEMP: dict[OfficialFilter, CNOfficialFilter] = {
     "All": "全部",
     "Official Only": "仅限官方",
-    "Unofficial (CN) Only": "非官方（CN）",
+    "Unofficial (CN) Only": "非官方（CN）",  # noqa: RUF001
 }
 
 CN_FILTER_3_TRANSLATION_TEMP: dict[CNPlaytestFilter, PlaytestFilter] = {
@@ -204,6 +197,7 @@ class MapSearchView(PaginatorView[MapModel]):
         Args:
             data: A list of MapModel.
             page_size: Amount of Models on a single page.
+            enable_cn_translation (bool, defaults to False): Enable Chinese translations.
         """
         self.enable_cn_translation = enable_cn_translation
         super().__init__("Map Search", data, page_size=page_size)
@@ -423,7 +417,7 @@ class MapSearchCog(BaseCog):
         restriction: app_commands.Transform[Restrictions, transformers.RestrictionsTransformer] | None,
         minimum_quality: app_commands.Choice[int] | None,
         category: MapCategory | None,
-        official_filter: CNOfficialFilter = "非官方（CN）",
+        official_filter: CNOfficialFilter = "非官方（CN）",  # noqa: RUF001
         completion_filter: CNCompletionFilter = "全部",
         medal_filter: CNMedalFilter = "全部",
         playtest_filter: CNPlaytestFilter = "全部",

@@ -4,12 +4,12 @@ import typing
 from logging import getLogger
 
 from discord import ButtonStyle, TextStyle, app_commands, ui
-from genjipk_sdk.models import (
+from genjipk_sdk.users import (
     NOTIFICATION_TYPES,
     Notification,
     OverwatchUsernameItem,
-    OverwatchUsernamesReadDTO,
-    OverwatchUsernamesUpdate,
+    OverwatchUsernamesResponse,
+    OverwatchUsernamesUpdateRequest,
 )
 
 from utilities.base import BaseCog, BaseView
@@ -34,12 +34,12 @@ DISABLED_EMOJI = "🔕"
 
 
 class SettingsView(BaseView):
-    def __init__(self, flags: Notification, current_usernames: OverwatchUsernamesReadDTO) -> None:
+    def __init__(self, flags: Notification, current_usernames: OverwatchUsernamesResponse) -> None:
         """Initialize SettingsView.
 
         Args:
             flags (Notification): The flags currently assigned to the user.
-            current_usernames (OverwatchUsernamesReadDTO): The user names a user currently has assigned.
+            current_usernames (OverwatchUsernamesResponse): The user names a user currently has assigned.
         """
         self.flags = flags
         self.current_usernames = current_usernames
@@ -145,11 +145,11 @@ class NotificationButton(ui.Button["SettingsView"]):
 class OpenOverwatchUsernamesModalButton(ui.Button["SettingsView"]):
     view: "SettingsView"
 
-    def __init__(self, current_usernames: OverwatchUsernamesReadDTO) -> None:
+    def __init__(self, current_usernames: OverwatchUsernamesResponse) -> None:
         """Initialize OpenOverwatchUsernamesModalButton.
 
         Args:
-            current_usernames (OverwatchUsernamesReadDTO): The user names a user currently has assigned.
+            current_usernames (OverwatchUsernamesResponse): The user names a user currently has assigned.
         """
         self.current_usernames = current_usernames
         super().__init__(style=ButtonStyle.green, label="Edit")
@@ -168,7 +168,7 @@ class OpenOverwatchUsernamesModalButton(ui.Button["SettingsView"]):
             assert isinstance(i.component, ui.TextInput)
             if i.component.value:
                 new_usernames.append(OverwatchUsernameItem(i.component.value, i.text == "Primary Overwatch Username"))
-        await itx.client.api.update_overwatch_usernames(itx.user.id, OverwatchUsernamesUpdate(new_usernames))
+        await itx.client.api.update_overwatch_usernames(itx.user.id, OverwatchUsernamesUpdateRequest(new_usernames))
         self.view.current_usernames = await itx.client.api.get_overwatch_usernames(itx.user.id)
         _view = self.view
         self.view.rebuild_components()
@@ -176,11 +176,11 @@ class OpenOverwatchUsernamesModalButton(ui.Button["SettingsView"]):
 
 
 class OverwatchUsernameModal(ui.Modal):
-    def __init__(self, current_usernames: OverwatchUsernamesReadDTO) -> None:
+    def __init__(self, current_usernames: OverwatchUsernamesResponse) -> None:
         """Initialize OverwatchUsernameModal.
 
         Args:
-            current_usernames (OverwatchUsernamesReadDTO): The user names a user currently has assigned.
+            current_usernames (OverwatchUsernamesResponse): The user names a user currently has assigned.
         """
         self.completed = False
         self.current_usernames = current_usernames

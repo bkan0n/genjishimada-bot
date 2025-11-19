@@ -8,7 +8,7 @@ dependencies = [
     "asyncpg>=0.30.0",
     "discord-ext-menus",
     "discord-py",
-    "genjipk-sdk",
+    "genjipk-sdk>=2.1.2",
     "jishaku>=2.6.0",
     "msgspec>=0.19.0",
     "sentry-sdk>=2.29.1",
@@ -27,7 +27,6 @@ dev = [
 [tool.uv.sources]
 discord-py = { git = "https://github.com/rapptz/discord.py", rev = "master" }
 discord-ext-menus = { git = "https://github.com/Rapptz/discord-ext-menus" }
-genjipk-sdk = { git = "https://github.com/bkan0n/genjipk-sdk", rev = "1ab099d03cce5d4228d2625001a9234d94a5d639" }
 
 [tool.ruff]
 exclude = ["tests"]

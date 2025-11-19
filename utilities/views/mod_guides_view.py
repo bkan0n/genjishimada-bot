@@ -5,8 +5,7 @@ from logging import getLogger
 from typing import TYPE_CHECKING, Sequence
 
 from discord import ButtonStyle, ui
-from genjipk_sdk.models import GuideFull
-from genjipk_sdk.utilities._types import URL_REGEX, OverwatchCode
+from genjipk_sdk.maps import URL_REGEX, GuideFullResponse, OverwatchCode
 
 from utilities.base import ConfirmationView
 from utilities.formatter import FilteredFormatter
@@ -19,7 +18,7 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
-class FormattableGuide(GuideFull):
+class FormattableGuide(GuideFullResponse):
     code: OverwatchCode | None = None
     thumbnail: str | None = None
 

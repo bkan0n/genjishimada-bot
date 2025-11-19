@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Awaitable, Callable, Iterable, Sequence, TypeVar, get_args
 
 from discord import SelectOption, ui
-from genjipk_sdk.utilities._types import Mechanics, OverwatchCode, Restrictions
+from genjipk_sdk.maps import Mechanics, OverwatchCode, Restrictions
 
 from utilities.base import BaseView, ConfirmationButton, ConfirmationCancelButton
 

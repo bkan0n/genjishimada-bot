@@ -1,8 +1,7 @@
 from logging import getLogger
 
-from genjipk_sdk.models import CompletionCreateDTO, CompletionSubmissionReadDTO
-from genjipk_sdk.models.completions import SuspiciousCompletionReadDTO
-from genjipk_sdk.utilities._types import MedalType
+from genjipk_sdk.completions import CompletionCreateRequest, CompletionSubmissionResponse, SuspiciousCompletionResponse
+from genjipk_sdk.maps import MedalType
 
 from .emojis import (
     VERIFIED_BRONZE,
@@ -19,7 +18,7 @@ from .emojis import (
 log = getLogger(__name__)
 
 
-class SuspiciousCompletionModel(SuspiciousCompletionReadDTO):
+class SuspiciousCompletionModel(SuspiciousCompletionResponse):
     def to_format_dict(self) -> dict[str, str | None]:
         """For use with Formatter."""
         return {
@@ -29,12 +28,11 @@ class SuspiciousCompletionModel(SuspiciousCompletionReadDTO):
         }
 
 
-class CompletionSubmissionModel(CompletionSubmissionReadDTO):
+class CompletionSubmissionModel(CompletionSubmissionResponse):
     def to_format_dict(self) -> dict[str, str | None]:
         """For use with Formatter."""
         description = {
             "Code": self.code,
-            "Map": self.map_name,
             "Time": self.time,
             "Difficulty": self.difficulty,
             "Video": f"[Link]({self.video})" if not self.completion and self.video else "",
@@ -44,36 +42,6 @@ class CompletionSubmissionModel(CompletionSubmissionReadDTO):
         }
 
         return description
-
-    def get_verification_status_text(self) -> str:
-        """Generate a celebratory status message based on verification, completion, and medal state.
-
-        Returns:
-            str: A concise, styled message describing the current verification status of the submission.
-        """
-        medal = self.hypothetical_medal.lower() if self.hypothetical_medal else None
-
-        if self.completion:
-            if self.verified:
-                status = "Verified screenshot submission! A clear has been confirmed without video proof."
-            else:
-                status = "Pending verification. Screenshot submitted — awaiting review."
-        elif self.verified and self.hypothetical_rank == 1:
-            if medal:
-                status = f"World Record! Fully verified with a {medal} medal."
-            else:
-                status = "World Record! Fully verified with no medal awarded."
-        elif self.verified:
-            if medal:
-                status = f"Fully verified submission! Awarded a {medal} medal."
-            else:
-                status = "Fully verified submission! No medal awarded."
-        elif medal:
-            status = f"Pending verification. Qualifies for a {medal} medal."
-        else:
-            status = "Pending verification. Medal eligibility to be determined."
-
-        return status
 
 
 class CompletionPostVerificationModel(CompletionSubmissionModel):
@@ -93,7 +61,7 @@ class CompletionPostVerificationModel(CompletionSubmissionModel):
         return description
 
 
-class CompletionCreateModel(CompletionCreateDTO):
+class CompletionCreateModel(CompletionCreateRequest):
     def to_format_dict(self) -> dict[str, str | None]:
         """For use with Formatter."""
         description = {
@@ -119,7 +87,7 @@ _MEDAL_TO_WR = {
 }
 
 
-def get_completion_icon_emoji(rank: int | None, medal: "MedalType | None") -> str:
+def get_completion_icon_emoji(rank: int | None, medal: MedalType | None) -> str:
     """Return the emoji for a completion/record based on rank and medal.
 
     Rules:

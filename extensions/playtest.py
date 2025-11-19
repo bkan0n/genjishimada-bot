@@ -10,35 +10,35 @@ import discord
 import msgspec
 from discord.app_commands import AppCommandError
 from discord.ui import Item
-from genjipk_sdk.models import (
-    MapPatchDTO,
-    MapReadPartialDTO,
-    MessageQueueCreatePlaytest,
-    NewsfeedEvent,
-    NewsfeedNewMap,
-    Notification,
-    PlaytestApproveCreate,
-    PlaytestApproveMQ,
-    PlaytestAssociateIDThread,
-    PlaytestForceAcceptCreate,
-    PlaytestForceAcceptMQ,
-    PlaytestForceDenyCreate,
-    PlaytestForceDenyMQ,
-    PlaytestPatchDTO,
-    PlaytestResetCreate,
-    PlaytestResetMQ,
-    PlaytestVote,
-    PlaytestVoteCastMQ,
-    PlaytestVoteRemovedMQ,
-)
-from genjipk_sdk.models.jobs import ClaimRequest
-from genjipk_sdk.utilities import (
+from genjipk_sdk.difficulties import (
     DIFFICULTY_MIDPOINTS,
     DIFFICULTY_RANGES_ALL,
     DifficultyAll,
     convert_extended_difficulty_to_top_level,
     convert_raw_difficulty_to_difficulty_all,
 )
+from genjipk_sdk.internal import ClaimCreateRequest
+from genjipk_sdk.maps import (
+    MapPartialResponse,
+    MapPatchRequest,
+    PlaytestApprovedEvent,
+    PlaytestApproveRequest,
+    PlaytestCreatedEvent,
+    PlaytestForceAcceptedEvent,
+    PlaytestForceAcceptRequest,
+    PlaytestForceDeniedEvent,
+    PlaytestForceDenyRequest,
+    PlaytestPatchRequest,
+    PlaytestResetEvent,
+    PlaytestResetRequest,
+    PlaytestStatus,
+    PlaytestThreadAssociateRequest,
+    PlaytestVote,
+    PlaytestVoteCastEvent,
+    PlaytestVoteRemovedEvent,
+)
+from genjipk_sdk.newsfeed import NewsfeedEvent, NewsfeedNewMap
+from genjipk_sdk.users import Notification
 
 from extensions._queue_registry import register_queue_handler
 from utilities import BaseCog, BaseService
@@ -49,7 +49,6 @@ from utilities.maps import MapModel
 
 if TYPE_CHECKING:
     from aio_pika.abc import AbstractIncomingMessage
-    from genjipk_sdk.utilities._types import PlaytestStatus
 
     import core
     from utilities._types import GenjiItx
@@ -108,7 +107,7 @@ class PlaytestService(BaseService):
                 return tag
         raise ValueError(f"Unknown tag: {value}")
 
-    async def _add_playtest(self, partial_data: MapReadPartialDTO, playtest_id: int) -> None:
+    async def _add_playtest(self, partial_data: MapPartialResponse, playtest_id: int) -> None:
         """Create a new playtest forum thread and populate it with metadata.
 
         This method:
@@ -119,7 +118,7 @@ class PlaytestService(BaseService):
         - Edits the forum thread message with components and an attached plot.
 
         Args:
-            partial_data (MapReadPartialDTO): Partial map data required to create the playtest.
+            partial_data (MapPartialResponse): Partial map data required to create the playtest.
             playtest_id (int): The ID of the playtest meta.
         """
         await self._ensure_guild_and_channel()
@@ -133,12 +132,12 @@ class PlaytestService(BaseService):
             applied_tags=[open_tag, tag],
         )
 
-        metadata = PlaytestAssociateIDThread(
+        metadata = PlaytestThreadAssociateRequest(
             playtest_id=playtest_id,
             thread_id=thread.id,
         )
         await self.bot.api.associate_playtest_meta(metadata)
-        await self.bot.api.edit_map(code=partial_data.code, data=MapPatchDTO(hidden=False))
+        await self.bot.api.edit_map(code=partial_data.code, data=MapPatchRequest(hidden=False))
         playtest_data = await self.bot.api.get_map(playtest_thread_id=thread.id)
         file = await self.bot.api.get_plot_file(code=playtest_data.code)
 
@@ -168,13 +167,13 @@ class PlaytestService(BaseService):
             msgspec.ValidationError: If the message body cannot be decoded to the expected format.
         """
         try:
-            struct = msgspec.json.decode(message.body, type=MessageQueueCreatePlaytest)
+            struct = msgspec.json.decode(message.body, type=PlaytestCreatedEvent)
             if message.headers.get("x-pytest-enabled", False):
                 log.debug("Pytest message received.")
                 return
 
             assert message.message_id
-            data = ClaimRequest(message.message_id)
+            data = ClaimCreateRequest(message.message_id)
             res = await self.bot.api.claim_idempotency(data)
             if not res.claimed:
                 log.debug("[Idempotency] Duplicate: %s", message.message_id)
@@ -195,7 +194,7 @@ class PlaytestService(BaseService):
             code: Map code.
             status: New playtest status.
         """
-        await self.bot.api.edit_map(code, MapPatchDTO(playtesting=status))
+        await self.bot.api.edit_map(code, MapPatchRequest(playtesting=status))
 
     async def _update_map_difficulty(self, *, code: str, difficulty: DifficultyAll) -> None:
         """Update a map's difficulty via API.
@@ -204,7 +203,7 @@ class PlaytestService(BaseService):
             code: Map code.
             difficulty: Difficulty value to set.
         """
-        await self.bot.api.edit_map(code, MapPatchDTO(difficulty=difficulty))
+        await self.bot.api.edit_map(code, MapPatchRequest(difficulty=difficulty))
 
     async def _alert_creator(self, *, creator_user_id: int, message: str) -> bool:
         """DM the primary creator about an action.
@@ -331,7 +330,7 @@ class PlaytestService(BaseService):
             if not delivered:
                 thread = await self._fetch_thread(thread_id)
                 await thread.send(msg)
-        await self.bot.api.edit_map(code, MapPatchDTO(difficulty=difficulty))
+        await self.bot.api.edit_map(code, MapPatchRequest(difficulty=difficulty))
         await self._grant_xp_upon_successful_playtest(thread_id)
         await self._post_newsfeed_new_map(code=code)
         await self._edit_thread_tags_close(thread_id=thread_id, cancelled=False)
@@ -363,7 +362,7 @@ class PlaytestService(BaseService):
             if not delivered:
                 thread = await self._fetch_thread(thread_id)
                 await thread.send(msg)
-        await self.bot.api.edit_map(code, MapPatchDTO(difficulty=difficulty))
+        await self.bot.api.edit_map(code, MapPatchRequest(difficulty=difficulty))
         await self._grant_xp_upon_successful_playtest(thread_id)
         await self._post_newsfeed_new_map(code=code)
         await self._edit_thread_tags_close(thread_id=thread_id, cancelled=False)
@@ -528,7 +527,7 @@ class PlaytestService(BaseService):
         if message.headers.get("x-pytest-enabled", False):
             return
 
-        s = msgspec.json.decode(message.body, type=PlaytestVoteCastMQ)
+        s = msgspec.json.decode(message.body, type=PlaytestVoteCastEvent)
         await self._apply_vote_discord_side(
             thread_id=s.thread_id,
             voter_id=s.voter_id,
@@ -544,7 +543,7 @@ class PlaytestService(BaseService):
         """
         if message.headers.get("x-pytest-enabled", False):
             return
-        s = msgspec.json.decode(message.body, type=PlaytestVoteRemovedMQ)
+        s = msgspec.json.decode(message.body, type=PlaytestVoteRemovedEvent)
         await self._remove_vote_discord_side(
             thread_id=s.thread_id,
             voter_id=s.voter_id,
@@ -562,13 +561,13 @@ class PlaytestService(BaseService):
                 return
 
             assert message.message_id
-            data = ClaimRequest(message.message_id)
+            data = ClaimCreateRequest(message.message_id)
             res = await self.bot.api.claim_idempotency(data)
             if not res.claimed:
                 log.debug("[Idempotency] Duplicate: %s", message.message_id)
                 return
 
-            s = msgspec.json.decode(message.body, type=PlaytestApproveMQ)
+            s = msgspec.json.decode(message.body, type=PlaytestApprovedEvent)
 
             await self._approve_playtest(
                 code=s.code,
@@ -593,13 +592,13 @@ class PlaytestService(BaseService):
                 return
 
             assert message.message_id
-            data = ClaimRequest(message.message_id)
+            data = ClaimCreateRequest(message.message_id)
             res = await self.bot.api.claim_idempotency(data)
             if not res.claimed:
                 log.debug("[Idempotency] Duplicate: %s", message.message_id)
                 return
 
-            s = msgspec.json.decode(message.body, type=PlaytestForceAcceptMQ)
+            s = msgspec.json.decode(message.body, type=PlaytestForceAcceptedEvent)
             log.debug(f"{s=}")
             playtest_data = await self.bot.api.get_playtest(s.thread_id)
             map_data = await self.bot.api.get_map(code=playtest_data.code)
@@ -626,13 +625,13 @@ class PlaytestService(BaseService):
                 return
 
             assert message.message_id
-            data = ClaimRequest(message.message_id)
+            data = ClaimCreateRequest(message.message_id)
             res = await self.bot.api.claim_idempotency(data)
             if not res.claimed:
                 log.debug("[Idempotency] Duplicate: %s", message.message_id)
                 return
 
-            s = msgspec.json.decode(message.body, type=PlaytestForceDenyMQ)
+            s = msgspec.json.decode(message.body, type=PlaytestForceDeniedEvent)
             playtest_data = await self.bot.api.get_playtest(s.thread_id)
             map_data = await self.bot.api.get_map(code=playtest_data.code)
             await self._force_deny_playtest(
@@ -658,13 +657,13 @@ class PlaytestService(BaseService):
                 return
 
             assert message.message_id
-            data = ClaimRequest(message.message_id)
+            data = ClaimCreateRequest(message.message_id)
             res = await self.bot.api.claim_idempotency(data)
             if not res.claimed:
                 log.debug("[Idempotency] Duplicate: %s", message.message_id)
                 return
 
-            s = msgspec.json.decode(message.body, type=PlaytestResetMQ)
+            s = msgspec.json.decode(message.body, type=PlaytestResetEvent)
             playtest_data = await self.bot.api.get_playtest(s.thread_id)
             map_data = await self.bot.api.get_map(code=playtest_data.code)
             await self._reset_playtest_votes_and_completions(
@@ -996,7 +995,7 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                     return
                 assert view.difficulty
 
-                payload = PlaytestForceAcceptCreate(difficulty=view.difficulty, verifier_id=itx.user.id)
+                payload = PlaytestForceAcceptRequest(difficulty=view.difficulty, verifier_id=itx.user.id)
                 await itx.client.api.force_accept_playtest(thread_id, payload)
 
             case "Force Deny":
@@ -1007,7 +1006,7 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                     return
                 assert view.reason
 
-                payload = PlaytestForceDenyCreate(verifier_id=itx.user.id, reason=view.reason)
+                payload = PlaytestForceDenyRequest(verifier_id=itx.user.id, reason=view.reason)
                 await itx.client.api.force_deny_playtest(thread_id, payload)
 
             case "Approve Submission":
@@ -1031,7 +1030,7 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                 if not confirmation_view.confirmed:
                     return
 
-                payload = PlaytestApproveCreate(itx.user.id)
+                payload = PlaytestApproveRequest(itx.user.id)
                 await itx.client.api.approve_playtest(thread_id, payload)
 
             case "Start Process Over":
@@ -1042,7 +1041,7 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                     return
                 assert view.reason
 
-                payload = PlaytestResetCreate(
+                payload = PlaytestResetRequest(
                     verifier_id=itx.user.id,
                     reason=view.reason,
                     remove_votes=True,
@@ -1058,7 +1057,7 @@ class ModOnlySelectMenu(discord.ui.Select["PlaytestComponentsV2View"]):
                     return
                 assert view.reason
 
-                payload = PlaytestResetCreate(
+                payload = PlaytestResetRequest(
                     verifier_id=itx.user.id,
                     reason=view.reason,
                     remove_votes=True,
@@ -1251,7 +1250,7 @@ class FinalizeButton(discord.ui.Button["PlaytestComponentsV2View"]):
         view = MapFinalizationViewV2(itx.guild.id, self.view.data)
         verification_message = await verification_channel.send(view=view)
 
-        playtest_edit_data = PlaytestPatchDTO(verification_id=verification_message.id)
+        playtest_edit_data = PlaytestPatchRequest(verification_id=verification_message.id)
         if not self.view.data.playtest:
             raise AttributeError("The data is missing playtest.")
         await itx.client.api.edit_playtest_meta(thread_id=self.view.data.playtest.thread_id, data=playtest_edit_data)

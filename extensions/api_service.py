@@ -26,59 +26,53 @@ from uuid import UUID
 import aiohttp
 import discord
 import msgspec
-from genjipk_sdk.models import (
-    NOTIFICATION_TYPES,
-    ChangeRequestCreateDTO,
-    CompletionCreateDTO,
-    CompletionPatchDTO,
-    Guide,
-    LogCreateDTO,
-    LootboxKeyType,
-    MapMasteryCreateDTO,
-    MapMasteryCreateReturnDTO,
-    MapMasteryData,
-    MapPatchDTO,
-    MapReadPartialDTO,
-    NewsfeedEvent,
-    Notification,
-    OverwatchUsernamesReadDTO,
-    OverwatchUsernamesUpdate,
-    PlaytestApproveCreate,
-    PlaytestAssociateIDThread,
-    PlaytestForceAcceptCreate,
-    PlaytestForceDenyCreate,
-    PlaytestPatchDTO,
-    PlaytestResetCreate,
+from genjipk_sdk.change_requests import ChangeRequestResponse
+from genjipk_sdk.completions import (
+    CompletionCreateRequest,
+    CompletionPatchRequest,
+    CompletionSubmissionJobResponse,
+    CompletionVerificationUpdateRequest,
+    PendingVerificationResponse,
+    QualityUpdateRequest,
+    SuspiciousCompletionCreateRequest,
+    UpvoteCreateRequest,
+    UpvoteSubmissionJobResponse,
+)
+from genjipk_sdk.difficulties import DifficultyAll, DifficultyTop
+from genjipk_sdk.internal import ClaimCreateRequest, ClaimResponse, JobStatusResponse, JobStatusUpdateRequest
+from genjipk_sdk.logs import LogCreateRequest
+from genjipk_sdk.lootbox import LootboxKeyType
+from genjipk_sdk.maps import (
+    GuideResponse,
+    GuideURL,
+    LinkMapsCreateRequest,
+    MapCategory,
+    MapCreationJobResponse,
+    MapMasteryCreateRequest,
+    MapMasteryCreateResponse,
+    MapMasteryResponse,
+    MapPartialResponse,
+    MapPatchRequest,
+    Mechanics,
+    OverwatchCode,
+    OverwatchMap,
+    PlaytestApproveRequest,
+    PlaytestForceAcceptRequest,
+    PlaytestForceDenyRequest,
+    PlaytestPatchRequest,
+    PlaytestResetRequest,
+    PlaytestResponse,
+    PlaytestStatus,
+    PlaytestThreadAssociateRequest,
     PlaytestVote,
-    PlaytestVotesAll,
-    QualityValueDTO,
-    SendToPlaytestDTO,
-    TierChange,
-    UserCreateDTO,
-    UserReadDTO,
-    UserUpdateDTO,
-    XpGrant,
-    XpGrantResult,
+    PlaytestVotesResponse,
+    QualityValueRequest,
+    Restrictions,
+    SendToPlaytestRequest,
+    UnlinkMapsCreateRequest,
 )
-from genjipk_sdk.models.completions import (
-    CompletionVerificationPutDTO,
-    PendingVerification,
-    QualityUpdateDTO,
-    SuspiciousCompletionWriteDTO,
-    UpvoteCreateDTO,
-)
-from genjipk_sdk.models.jobs import (
-    ClaimRequest,
-    ClaimResponse,
-    CreateMapReturnDTO,
-    CreatePublishNewsfeedReturnDTO,
-    JobStatus,
-    JobUpdate,
-    SubmitCompletionReturnDTO,
-    UpvoteSubmissionReturnDTO,
-)
-from genjipk_sdk.models.maps import LinkMapsCreateDTO, PlaytestReadDTO, UnlinkMapsCreateDTO
-from genjipk_sdk.models.tags import (
+from genjipk_sdk.newsfeed import NewsfeedEvent, NewsfeedEventType, PublishNewsfeedJobResponse
+from genjipk_sdk.tags import (
     TagsAutocompleteRequest,
     TagsAutocompleteResponse,
     TagsMutateRequest,
@@ -86,16 +80,17 @@ from genjipk_sdk.models.tags import (
     TagsSearchFilters,
     TagsSearchResponse,
 )
-from genjipk_sdk.models.users import RankDetailReadDTO
-from genjipk_sdk.utilities import DifficultyAll
-from genjipk_sdk.utilities._types import (
-    GuideURL,
-    Mechanics,
-    NewsfeedEventType,
-    OverwatchCode,
-    OverwatchMap,
-    Restrictions,
+from genjipk_sdk.users import (
+    NOTIFICATION_TYPES,
+    Notification,
+    OverwatchUsernamesResponse,
+    OverwatchUsernamesUpdateRequest,
+    RankDetailResponse,
+    UserCreateRequest,
+    UserResponse,
+    UserUpdateRequest,
 )
+from genjipk_sdk.xp import TierChangeResponse, XpGrantRequest, XpGrantResponse
 from multidict import MultiDict
 
 from extensions.completions import CompletionLeaderboardFormattable, CompletionUserFormattable
@@ -106,12 +101,6 @@ from utilities.maps import MapCreateModel, MapModel
 from utilities.views.mod_guides_view import FormattableGuide
 
 if TYPE_CHECKING:
-    from genjipk_sdk.utilities import DifficultyTop
-    from genjipk_sdk.utilities._types import (
-        MapCategory,
-        PlaytestStatus,
-    )
-
     import core
 
     T = TypeVar("T")
@@ -298,7 +287,7 @@ class APIService:
             self._is_available = False
             raise APIUnavailableError("Connection error; API marked unavailable.")
 
-    async def _request(
+    async def _request(  # noqa: PLR0912
         self,
         route: Route,
         *,
@@ -372,7 +361,7 @@ class APIService:
             self._is_available = False
             raise APIUnavailableError("Connection error; API marked unavailable.")
 
-    def submit_map(self, data: MapCreateModel) -> Response[CreateMapReturnDTO]:
+    def submit_map(self, data: MapCreateModel) -> Response[MapCreationJobResponse]:
         """Submit a new map to the API.
 
         Args:
@@ -382,7 +371,7 @@ class APIService:
             Response[MapCreateModel]: The created map.
         """
         r = Route("POST", "/maps")
-        return self._request(r, response_model=CreateMapReturnDTO, data=data)
+        return self._request(r, response_model=MapCreationJobResponse, data=data)
 
     def get_maps(  # noqa: PLR0913
         self,
@@ -560,26 +549,26 @@ class APIService:
             return maps[0]
         raise ValueError("No maps were found.")
 
-    def get_playtest(self, thread_id: int) -> Response[PlaytestReadDTO]:
+    def get_playtest(self, thread_id: int) -> Response[PlaytestResponse]:
         """Retrieve a playtest record by thread ID.
 
         Args:
             thread_id (int): The ID of the playtest thread.
 
         Returns:
-            Response[PlaytestReadDTO]: The playtest data.
+            Response[PlaytestResponse]: The playtest data.
         """
         return self._request(
             Route("GET", "/maps/playtests/{thread_id}", thread_id=thread_id),
-            response_model=PlaytestReadDTO,
+            response_model=PlaytestResponse,
         )
 
-    def edit_map(self, code: OverwatchCode, data: MapPatchDTO) -> Response[None]:
+    def edit_map(self, code: OverwatchCode, data: MapPatchRequest) -> Response[None]:
         """Apply updates to a map by code.
 
         Args:
             code (OverwatchCode): The map code to update.
-            data (MapPatchDTO): The patch data to apply.
+            data (MapPatchRequest): The patch data to apply.
         """
         r = Route("PATCH", "/maps/{code}", code=code)
         return self._request(r, data=data)
@@ -619,7 +608,7 @@ class APIService:
         r = Route("DELETE", "/maps/{code}/guides/{user_id}", code=code, user_id=user_id)
         return self._request(r)
 
-    def edit_guide(self, code: OverwatchCode, user_id: int, url: GuideURL) -> Response[Guide]:
+    def edit_guide(self, code: OverwatchCode, user_id: int, url: GuideURL) -> Response[GuideResponse]:
         """Update a guide's URL for a user on a specific map.
 
         Args:
@@ -628,23 +617,23 @@ class APIService:
             url (GuideURL): The new guide URL.
 
         Returns:
-            Response[Guide]: The updated guide.
+            Response[GuideResponse]: The updated guide.
         """
         r = Route("PATCH", "/maps/{code}/guides/{user_id}", code=code, user_id=user_id)
-        return self._request(r, response_model=Guide, params={"url": url})
+        return self._request(r, response_model=GuideResponse, params={"url": url})
 
-    def create_guide(self, code: OverwatchCode, data: Guide) -> Response[Guide]:
+    def create_guide(self, code: OverwatchCode, data: GuideResponse) -> Response[GuideResponse]:
         """Create a guide for a map.
 
         Args:
             code (OverwatchCode): The map code to associate with the guide.
-            data (Guide): The guide data.
+            data (GuideResponse): The guide data.
 
         Returns:
-            Response[Guide]: The created guide.
+            Response[GuideResponse]: The created guide.
         """
         r = Route("POST", "/maps/{code}/guides", code=code)
-        return self._request(r, response_model=Guide, data=data)
+        return self._request(r, response_model=GuideResponse, data=data)
 
     @overload
     async def get_plot_file(self, *, code: OverwatchCode) -> discord.File: ...
@@ -676,32 +665,32 @@ class APIService:
         image_bytes = await self._request(r)
         return discord.File(fp=BytesIO(image_bytes), filename="vote_hist.png")
 
-    def associate_playtest_meta(self, data: PlaytestAssociateIDThread) -> Response[PlaytestReadDTO]:
+    def associate_playtest_meta(self, data: PlaytestThreadAssociateRequest) -> Response[PlaytestResponse]:
         """Associate thread metadata with a playtest.
 
         Args:
-            data (PlaytestAssociateIDThread): The data containing thread and map association.
+            data (PlaytestThreadAssociateRequest): The data containing thread and map association.
 
         Returns:
-            Response[PlaytestReadDTO]: The updated playtest data.
+            Response[PlaytestResponse]: The updated playtest data.
         """
         return self._request(
             Route("PATCH", "/maps/playtests"),
             data=data,
-            response_model=PlaytestReadDTO,
+            response_model=PlaytestResponse,
         )
 
-    def get_partial_map(self, code: OverwatchCode) -> Response[MapReadPartialDTO]:
+    def get_partial_map(self, code: OverwatchCode) -> Response[MapPartialResponse]:
         """Fetch a partial map model used for playtest setup.
 
         Args:
             code (OverwatchCode): The map code to query.
 
         Returns:
-            Response[MapReadPartialDTO]: Partial map data.
+            Response[MapPartialResponse]: Partial map data.
         """
         r = Route("GET", "/maps/{code}/partial", code=code)
-        return self._request(r, response_model=MapReadPartialDTO)
+        return self._request(r, response_model=MapPartialResponse)
 
     def cast_playtest_vote(self, thread_id: int, user_id: int, vote: PlaytestVote) -> Response[None]:
         """Submit a vote on a playtest thread.
@@ -733,24 +722,24 @@ class APIService:
         r = Route("DELETE", "/maps/playtests/{thread_id}/vote", thread_id=thread_id)
         return self._request(r)
 
-    def get_all_votes(self, thread_id: int) -> Response[PlaytestVotesAll]:
+    def get_all_votes(self, thread_id: int) -> Response[PlaytestVotesResponse]:
         """Retrieve all votes for a playtest.
 
         Args:
             thread_id (int): The playtest thread ID.
 
         Returns:
-            Response[PlaytestVotesAll]: All votes and statistics.
+            Response[PlaytestVotesResponse]: All votes and statistics.
         """
         r = Route("GET", "/maps/playtests/{thread_id}/votes", thread_id=thread_id)
-        return self._request(r, response_model=PlaytestVotesAll)
+        return self._request(r, response_model=PlaytestVotesResponse)
 
-    def edit_playtest_meta(self, thread_id: int, data: PlaytestPatchDTO) -> Response[None]:
+    def edit_playtest_meta(self, thread_id: int, data: PlaytestPatchRequest) -> Response[None]:
         """Patch metadata associated with a playtest thread.
 
         Args:
             thread_id (int): The ID of the playtest thread.
-            data (PlaytestPatchDTO): The metadata changes to apply.
+            data (PlaytestPatchRequest): The metadata changes to apply.
         """
         r = Route(
             "PATCH",
@@ -972,26 +961,26 @@ class APIService:
         r = Route("GET", "/users/{user_id}/exists", user_id=user_id)
         return self._request(r, response_model=bool)
 
-    def update_user_names(self, user_id: int, data: UserUpdateDTO) -> Response[None]:
+    def update_user_names(self, user_id: int, data: UserUpdateRequest) -> Response[None]:
         """Update a user's nickname or global_name.
 
         Args:
             user_id (int): The user ID to check.
-            data (UserUpdateDTO): Data to update.
+            data (UserUpdateRequest): Data to update.
         """
         r = Route("PATCH", "/users/{user_id}", user_id=user_id)
         return self._request(r, data=data)
 
-    def get_users(self) -> Response[list[UserReadDTO] | None]:
+    def get_users(self) -> Response[list[UserResponse] | None]:
         """Retrieve all users.
 
         Returns:
             Response[list[User] | None]: List of users, or None if no data.
         """
         r = Route("GET", "/users")
-        return self._request(r, response_model=list[UserReadDTO] | None)
+        return self._request(r, response_model=list[UserResponse] | None)
 
-    def get_user(self, user_id: int) -> Response[UserReadDTO | None]:
+    def get_user(self, user_id: int) -> Response[UserResponse | None]:
         """Fetch a single user by ID.
 
         Args:
@@ -1001,31 +990,31 @@ class APIService:
             Response[User | None]: The user, if found.
         """
         r = Route("GET", "/users/{user_id}", user_id=user_id)
-        return self._request(r, response_model=UserReadDTO | None)
+        return self._request(r, response_model=UserResponse | None)
 
-    def create_user(self, data: UserCreateDTO) -> Response[UserReadDTO]:
+    def create_user(self, data: UserCreateRequest) -> Response[UserResponse]:
         """Create a new user.
 
         Args:
             data: User creation payload.
 
         Returns:
-            Response[UserReadDTO]: The created user's data.
+            Response[UserResponse]: The created user's data.
         """
         r = Route("POST", "/users")
-        return self._request(r, response_model=UserReadDTO, data=data)
+        return self._request(r, response_model=UserResponse, data=data)
 
-    def get_user_rank_data(self, user_id: int) -> Response[list[RankDetailReadDTO]]:
+    def get_user_rank_data(self, user_id: int) -> Response[list[RankDetailResponse]]:
         """Fetch detailed rank data for a user.
 
         Args:
             user_id: ID of the user to retrieve rank data for.
 
         Returns:
-            Response[list[RankDetailReadDTO]]: List of rank detail records.
+            Response[list[RankDetailResponse]]: List of rank detail records.
         """
         r = Route("GET", "/users/{user_id}/rank", user_id=user_id)
-        return self._request(r, response_model=list[RankDetailReadDTO])
+        return self._request(r, response_model=list[RankDetailResponse])
 
     def get_affected_users(self, code: OverwatchCode) -> Response[list[int]]:
         """Fetch user IDs affected by a specific map.
@@ -1045,8 +1034,8 @@ class APIService:
 
     def submit_completion(
         self,
-        data: CompletionCreateDTO,
-    ) -> Response[SubmitCompletionReturnDTO]:
+        data: CompletionCreateRequest,
+    ) -> Response[CompletionSubmissionJobResponse]:
         """Submit a new completion with an attached file (multipart/form-data).
 
         Args:
@@ -1059,7 +1048,7 @@ class APIService:
             Response[int]: The created submission ID.
         """
         r = Route("POST", "/completions")
-        return self._request(r, response_model=SubmitCompletionReturnDTO, data=data)
+        return self._request(r, response_model=CompletionSubmissionJobResponse, data=data)
 
     def get_completion_submission(self, record_id: int) -> Response[CompletionSubmissionModel]:
         """Fetch a completion submission by its record ID.
@@ -1073,34 +1062,36 @@ class APIService:
         r = Route("GET", "/completions/{record_id}/submission", record_id=record_id)
         return self._request(r, response_model=CompletionSubmissionModel)
 
-    def get_pending_verifications(self) -> Response[list[PendingVerification]]:
+    def get_pending_verifications(self) -> Response[list[PendingVerificationResponse]]:
         """Retrieve all pending completion verifications.
 
         Returns:
-            Response[list[PendingVerification]]: List of pending verifications.
+            Response[list[PendingVerificationResponse]]: List of pending verifications.
         """
         r = Route("GET", "/completions/pending")
-        return self._request(r, response_model=list[PendingVerification])
+        return self._request(r, response_model=list[PendingVerificationResponse])
 
-    def edit_completion(self, record_id: int, data: CompletionPatchDTO) -> Response[None]:
+    def edit_completion(self, record_id: int, data: CompletionPatchRequest) -> Response[None]:
         """Apply updates to a completion record.
 
         Args:
             record_id (int): The ID of the completion to update.
-            data (CompletionPatchDTO): The patch data.
+            data (CompletionPatchRequest): The patch data.
         """
         r = Route("PATCH", "/completions/{record_id}", record_id=record_id)
         return self._request(r, data=data)
 
-    def verify_completion(self, record_id: int, data: CompletionVerificationPutDTO) -> Response[JobStatus]:
+    def verify_completion(
+        self, record_id: int, data: CompletionVerificationUpdateRequest
+    ) -> Response[JobStatusResponse]:
         """Submit a verification decision for a completion.
 
         Args:
             record_id (int): The ID of the completion.
-            data (CompletionVerificationPutDTO): The verification decision.
+            data (CompletionVerificationUpdateRequest): The verification decision.
         """
         r = Route("PUT", "/completions/{record_id}/verification", record_id=record_id)
-        return self._request(r, data=data, response_model=JobStatus)
+        return self._request(r, data=data, response_model=JobStatusResponse)
 
     def get_completions(self, code: OverwatchCode) -> Response[list[CompletionLeaderboardFormattable]]:
         """Fetch the completions leaderboard for a specific map code.
@@ -1145,7 +1136,7 @@ class APIService:
         r = Route("GET", "/completions/world-records")
         return self._request(r, response_model=list[CompletionUserFormattable], params={"user_id": user_id})
 
-    def create_newsfeed(self, event: NewsfeedEvent) -> Response[CreatePublishNewsfeedReturnDTO]:
+    def create_newsfeed(self, event: NewsfeedEvent) -> Response[PublishNewsfeedJobResponse]:
         """Create a newsfeed event and return its ID.
 
         Args:
@@ -1155,7 +1146,7 @@ class APIService:
             (int): Newsfeed event ID.
         """
         r = Route("POST", "/newsfeed")
-        return self._request(r, response_model=CreatePublishNewsfeedReturnDTO, data=event)
+        return self._request(r, response_model=PublishNewsfeedJobResponse, data=event)
 
     def get_suspicious_flags(self, user_id: int) -> Response[list[SuspiciousCompletionModel]]:
         """Fetch suspicious completion flags for a user.
@@ -1170,29 +1161,31 @@ class APIService:
         r = Route("GET", "/completions/suspicious")
         return self._request(r, response_model=list[SuspiciousCompletionModel], params={"user_id": user_id})
 
-    def set_suspicious_flags(self, data: SuspiciousCompletionWriteDTO) -> Response[SuspiciousCompletionWriteDTO]:
+    def set_suspicious_flags(
+        self, data: SuspiciousCompletionCreateRequest
+    ) -> Response[SuspiciousCompletionCreateRequest]:
         """Create a suspicious flag for a completion.
 
         Args:
             data: Payload describing the suspicious flag to set.
 
         Returns:
-            Response[SuspiciousCompletionWriteDTO]: The created suspicious flag record.
+            Response[SuspiciousCompletionCreateRequest]: The created suspicious flag record.
         """
         r = Route("POST", "/completions/suspicious")
         return self._request(r, data=data)
 
-    def upvote_submission(self, data: UpvoteCreateDTO) -> Response[UpvoteSubmissionReturnDTO]:
+    def upvote_submission(self, data: UpvoteCreateRequest) -> Response[UpvoteSubmissionJobResponse]:
         """Upvote a completion submission.
 
         Args:
             data: Payload containing the upvote request details.
 
         Returns:
-            Response[UpvoteSubmissionReturnDTO]: The new upvote ID if created, or None if unsuccessful.
+            Response[UpvoteSubmissionJobResponse]: The new upvote ID if created, or None if unsuccessful.
         """
         r = Route("POST", "/completions/upvoting")
-        return self._request(r, data=data, response_model=UpvoteSubmissionReturnDTO)
+        return self._request(r, data=data, response_model=UpvoteSubmissionJobResponse)
 
     def get_newsfeed(
         self,
@@ -1270,7 +1263,7 @@ class APIService:
         r = Route("PATCH", "/lootbox/keys/{key_type}", key_type=key_type)
         return self._request(r)
 
-    def grant_user_xp(self, user_id: int, data: XpGrant) -> Response[XpGrantResult]:
+    def grant_user_xp(self, user_id: int, data: XpGrantRequest) -> Response[XpGrantResponse]:
         """Grant XP to a user.
 
         Args:
@@ -1278,12 +1271,12 @@ class APIService:
             data: Payload describing the XP grant.
 
         Returns:
-            Response[XpGrantResult]: Resulting XP grant details.
+            Response[XpGrantResponse]: Resulting XP grant details.
         """
         r = Route("POST", "/lootbox/users/{user_id}/xp", user_id=user_id)
-        return self._request(r, response_model=XpGrantResult, data=data)
+        return self._request(r, response_model=XpGrantResponse, data=data)
 
-    def get_xp_tier_change(self, old_xp: int, new_xp: int) -> Response[TierChange]:
+    def get_xp_tier_change(self, old_xp: int, new_xp: int) -> Response[TierChangeResponse]:
         """Get XP tier changes between old and new XP values.
 
         Args:
@@ -1291,14 +1284,14 @@ class APIService:
             new_xp: The user's updated XP value.
 
         Returns:
-            Response[TierChange]: Tier change information.
+            Response[TierChangeResponse]: Tier change information.
         """
         r = Route("GET", "/lootbox/xp/tier")
-        return self._request(r, response_model=TierChange, params={"old_xp": old_xp, "new_xp": new_xp})
+        return self._request(r, response_model=TierChangeResponse, params={"old_xp": old_xp, "new_xp": new_xp})
 
     def get_map_mastery_data(
         self, user_id: int, map_name: OverwatchMap | None = None
-    ) -> Response[list[MapMasteryData]]:
+    ) -> Response[list[MapMasteryResponse]]:
         """Fetch mastery data for a user, optionally scoped to a map.
 
         Args:
@@ -1306,22 +1299,24 @@ class APIService:
             map_name: Optional map name to filter mastery data.
 
         Returns:
-            Response[list[MapMasteryData]]: List of mastery records.
+            Response[list[MapMasteryResponse]]: List of mastery records.
         """
         r = Route("GET", "/maps/mastery")
-        return self._request(r, response_model=list[MapMasteryData], params={"user_id": user_id, "map_name": map_name})
+        return self._request(
+            r, response_model=list[MapMasteryResponse], params={"user_id": user_id, "map_name": map_name}
+        )
 
-    def update_mastery(self, data: MapMasteryCreateDTO) -> Response[MapMasteryCreateReturnDTO | None]:
+    def update_mastery(self, data: MapMasteryCreateRequest) -> Response[MapMasteryCreateResponse | None]:
         """Update mastery progress for a user on a map.
 
         Args:
             data: Map mastery creation/update payload.
 
         Returns:
-            Response[MapMasteryCreateReturnDTO | None]: Updated mastery data, or None if not applicable.
+            Response[MapMasteryCreateResponse | None]: Updated mastery data, or None if not applicable.
         """
         r = Route("POST", "/maps/mastery")
-        return self._request(r, response_model=MapMasteryCreateReturnDTO | None, data=data)
+        return self._request(r, response_model=MapMasteryCreateResponse | None, data=data)
 
     def check_permission_for_change_request(self, thread_id: int, user_id: int, code: OverwatchCode) -> Response[bool]:
         """Check whether a user has permission to create a change request.
@@ -1337,7 +1332,7 @@ class APIService:
         r = Route("GET", "/change-requests/permission")
         return self._request(r, response_model=bool, params={"thread_id": thread_id, "user_id": user_id, "code": code})
 
-    def create_change_request(self, data: ChangeRequestCreateDTO) -> Response[None]:
+    def create_change_request(self, data: ChangeRequestResponse) -> Response[None]:
         """Create a new change request.
 
         Args:
@@ -1394,19 +1389,19 @@ class APIService:
         r = Route("PATCH", "/change-requests/{thread_id}/alerted", thread_id=thread_id)
         return self._request(r)
 
-    def get_overwatch_usernames(self, user_id: int) -> Response[OverwatchUsernamesReadDTO]:
+    def get_overwatch_usernames(self, user_id: int) -> Response[OverwatchUsernamesResponse]:
         """Fetch Overwatch usernames associated with a user.
 
         Args:
             user_id: ID of the target user.
 
         Returns:
-            Response[OverwatchUsernamesReadDTO]: Usernames DTO for the user.
+            Response[OverwatchUsernamesResponse]: Usernames DTO for the user.
         """
         r = Route("GET", "/users/{user_id}/overwatch", user_id=user_id)
-        return self._request(r, response_model=OverwatchUsernamesReadDTO)
+        return self._request(r, response_model=OverwatchUsernamesResponse)
 
-    def update_overwatch_usernames(self, user_id: int, data: OverwatchUsernamesUpdate) -> Response[None]:
+    def update_overwatch_usernames(self, user_id: int, data: OverwatchUsernamesUpdateRequest) -> Response[None]:
         """Update Overwatch usernames for a user.
 
         Args:
@@ -1431,7 +1426,7 @@ class APIService:
         r = Route("POST", "/maps/{code}/legacy", code=code)
         return self._request(r)
 
-    def override_quality_votes(self, code: OverwatchCode, data: QualityValueDTO) -> Response[None]:
+    def override_quality_votes(self, code: OverwatchCode, data: QualityValueRequest) -> Response[None]:
         """Override quality votes for a map.
 
         Args:
@@ -1444,7 +1439,7 @@ class APIService:
         r = Route("POST", "/maps/{code}/quality", code=code)
         return self._request(r, data=data)
 
-    def set_quality_vote(self, code: OverwatchCode, data: QualityUpdateDTO) -> Response[None]:
+    def set_quality_vote(self, code: OverwatchCode, data: QualityUpdateRequest) -> Response[None]:
         """Override quality votes for a map.
 
         Args:
@@ -1527,13 +1522,13 @@ class APIService:
             namespace (dict): A dict of the interaction command namespace (arguments used).
         """
         r = Route("POST", "/utilities/log")
-        data = LogCreateDTO(command_name, user_id, created_at, namespace)
+        data = LogCreateRequest(command_name, user_id, created_at, namespace)
         return self._request(r, data=data)
 
-    def get_job(self, job_id: UUID) -> Response[JobStatus]:
+    def get_job(self, job_id: UUID) -> Response[JobStatusResponse]:
         """Get an active job."""
         r = Route("GET", "/internal/jobs/{job_id}", job_id=job_id)
-        return self._request(r, response_model=JobStatus)
+        return self._request(r, response_model=JobStatusResponse)
 
     def update_job(
         self,
@@ -1544,7 +1539,7 @@ class APIService:
     ) -> Response[None]:
         """Update a job status."""
         r = Route("PATCH", "/internal/jobs/{job_id}", job_id=job_id)
-        data = JobUpdate(status, error_code, error_msg)
+        data = JobStatusUpdateRequest(status, error_code, error_msg)
         return self._request(r, data=data)
 
     def search_tags(self, data: TagsSearchFilters) -> Response[TagsSearchResponse]:
@@ -1562,52 +1557,52 @@ class APIService:
         r = Route("POST", "/tags/autocomplete")
         return self._request(r, response_model=TagsAutocompleteResponse, data=data)
 
-    def approve_playtest(self, thread_id: int, data: PlaytestApproveCreate) -> Response[JobStatus]:
+    def approve_playtest(self, thread_id: int, data: PlaytestApproveRequest) -> Response[JobStatusResponse]:
         """Approve playtest submission."""
         r = Route("POST", "/maps/playtests/{thread_id}/approve", thread_id=thread_id)
-        return self._request(r, response_model=JobStatus, data=data)
+        return self._request(r, response_model=JobStatusResponse, data=data)
 
-    def force_accept_playtest(self, thread_id: int, data: PlaytestForceAcceptCreate) -> Response[JobStatus]:
+    def force_accept_playtest(self, thread_id: int, data: PlaytestForceAcceptRequest) -> Response[JobStatusResponse]:
         """Force accept playtest submission."""
         r = Route("POST", "/maps/playtests/{thread_id}/force_accept", thread_id=thread_id)
-        return self._request(r, response_model=JobStatus, data=data)
+        return self._request(r, response_model=JobStatusResponse, data=data)
 
-    def force_deny_playtest(self, thread_id: int, data: PlaytestForceDenyCreate) -> Response[JobStatus]:
+    def force_deny_playtest(self, thread_id: int, data: PlaytestForceDenyRequest) -> Response[JobStatusResponse]:
         """Force deny playtest submission."""
         r = Route("POST", "/maps/playtests/{thread_id}/force_deny", thread_id=thread_id)
-        return self._request(r, response_model=JobStatus, data=data)
+        return self._request(r, response_model=JobStatusResponse, data=data)
 
-    def reset_playtest(self, thread_id: int, data: PlaytestResetCreate) -> Response[JobStatus]:
+    def reset_playtest(self, thread_id: int, data: PlaytestResetRequest) -> Response[JobStatusResponse]:
         """Reset playtest submission."""
         r = Route("POST", "/maps/playtests/{thread_id}/reset", thread_id=thread_id)
-        return self._request(r, response_model=JobStatus, data=data)
+        return self._request(r, response_model=JobStatusResponse, data=data)
 
     def get_upvotes_from_message_id(self, message_id: int) -> Response[int]:
         """Get upvotes count."""
         r = Route("GET", "/completions/upvoting/{message_id}", message_id=message_id)
         return self._request(r, response_model=int)
 
-    def claim_idempotency(self, data: ClaimRequest) -> Response[ClaimResponse]:
+    def claim_idempotency(self, data: ClaimCreateRequest) -> Response[ClaimResponse]:
         """Claim an idempotency key for a queue message action."""
         r = Route("POST", "/internal/idempotency/claim")
         return self._request(r, response_model=ClaimResponse, data=data)
 
-    def delete_claimed_idempotency(self, data: ClaimRequest) -> Response[None]:
+    def delete_claimed_idempotency(self, data: ClaimCreateRequest) -> Response[None]:
         """Delete a claimed idempotency key for a queue message action."""
         r = Route("DELETE", "/internal/idempotency/claim")
         return self._request(r, data=data)
 
-    def send_map_to_playtest(self, code: OverwatchCode, data: SendToPlaytestDTO) -> Response[JobStatus]:
+    def send_map_to_playtest(self, code: OverwatchCode, data: SendToPlaytestRequest) -> Response[JobStatusResponse]:
         """Send a map to playtest."""
         r = Route("POST", "/maps/{code}/playtest", code=code)
         return self._request(r, data=data)
 
-    def link_map_codes(self, data: LinkMapsCreateDTO) -> Response[JobStatus | None]:
+    def link_map_codes(self, data: LinkMapsCreateRequest) -> Response[JobStatusResponse | None]:
         """Link two map codes."""
         r = Route("POST", "/maps/link-codes")
-        return self._request(r, data=data, response_model=JobStatus | None)
+        return self._request(r, data=data, response_model=JobStatusResponse | None)
 
-    def unlink_map_codes(self, data: UnlinkMapsCreateDTO) -> Response[None]:
+    def unlink_map_codes(self, data: UnlinkMapsCreateRequest) -> Response[None]:
         """Unlink two map codes."""
         r = Route("DELETE", "/maps/link-codes")
         return self._request(r, data=data)

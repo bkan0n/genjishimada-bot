@@ -5,16 +5,20 @@ from logging import getLogger
 from typing import TYPE_CHECKING, Any, Callable, Literal, cast
 
 from discord import Member, TextStyle, app_commands, ui
-from genjipk_sdk.models import MapPatchDTO, Medals, QualityValueDTO, SendToPlaytestDTO
-from genjipk_sdk.models.maps import LinkMapsCreateDTO, UnlinkMapsCreateDTO
-from genjipk_sdk.utilities import DifficultyAll
-from genjipk_sdk.utilities._types import (
+from genjipk_sdk.difficulties import DifficultyAll
+from genjipk_sdk.maps import (
+    LinkMapsCreateRequest,
     MapCategory,
+    MapPatchRequest,
     Mechanics,
+    MedalsResponse,
     OverwatchCode,
     OverwatchMap,
     PlaytestStatus,
+    QualityValueRequest,
     Restrictions,
+    SendToPlaytestRequest,
+    UnlinkMapsCreateRequest,
 )
 from msgspec import UNSET
 
@@ -36,6 +40,7 @@ log = getLogger(__name__)
 
 class EditMedalsModal(ui.Modal):
     def __init__(self, data: MapModel) -> None:
+        """Initialize EditMedalsModal."""
         super().__init__(title="Edit Medals")
         self.data = data
 
@@ -64,6 +69,7 @@ class EditMedalsModal(ui.Modal):
         self.add_item(self.bronze_label)
 
     async def on_submit(self, itx: GenjiItx) -> None:
+        """Callback for modal."""
         await itx.response.defer(ephemeral=True, thinking=True)
         assert isinstance(self.gold_label.component, ui.TextInput)
         assert isinstance(self.silver_label.component, ui.TextInput)
@@ -103,18 +109,19 @@ class EditMedalsModal(ui.Modal):
         message = "Are you sure you want to change the medal thresholds for this map?\n" + "\n".join(medal_changes)
 
         async def callback() -> None:
-            medals = Medals(
+            medals = MedalsResponse(
                 gold=gold,
                 silver=silver,
                 bronze=bronze,
             )
-            await itx.client.api.edit_map(self.data.code, MapPatchDTO(medals=medals))
+            await itx.client.api.edit_map(self.data.code, MapPatchRequest(medals=medals))
 
         view = ConfirmationView(message, callback)
         await itx.edit_original_response(view=view)
         view.original_interaction = itx
 
     async def on_error(self, itx: GenjiItx, error: Exception, /) -> None:
+        """Handle errors."""
         await itx.client.tree.on_error(itx, cast("app_commands.AppCommandError", error))
 
 
@@ -151,7 +158,7 @@ async def edit_map_field(
 
     async def callback() -> None:
         patch_field = "custom_banner" if field_name == "map_banner" else field_name
-        await itx.client.api.edit_map(code, MapPatchDTO(**{patch_field: new_value}))
+        await itx.client.api.edit_map(code, MapPatchRequest(**{patch_field: new_value}))
 
     view = ConfirmationView(message, callback)
     await itx.edit_original_response(view=view)
@@ -310,7 +317,7 @@ class ModeratorCog(BaseCog):
 
         await self.bot.api.edit_map(
             code,
-            MapPatchDTO(
+            MapPatchRequest(
                 hidden=view.hidden_button.enabled,
                 official=view.official_button.enabled,
                 archived=view.archived_button.enabled,
@@ -319,7 +326,7 @@ class ModeratorCog(BaseCog):
         )
         if view.send_to_playtest_button.enabled:
             playtesting_difficulty = cast(DifficultyAll, view.playtest_difficulty_select.values[0])
-            await self.bot.api.send_map_to_playtest(data.code, SendToPlaytestDTO(playtesting_difficulty))
+            await self.bot.api.send_map_to_playtest(data.code, SendToPlaytestRequest(playtesting_difficulty))
 
     @map.command(name="edit-difficulty")
     async def edit_difficulty(
@@ -433,7 +440,7 @@ class ModeratorCog(BaseCog):
         await view.wait()
         if set(view.select.values) == set(map_data.mechanics):
             return
-        await itx.client.api.edit_map(code, MapPatchDTO(mechanics=cast("list[Mechanics]", view.select.values)))
+        await itx.client.api.edit_map(code, MapPatchRequest(mechanics=cast("list[Mechanics]", view.select.values)))
 
     @map.command(name="edit-restrictions")
     async def edit_restrictions(
@@ -460,7 +467,9 @@ class ModeratorCog(BaseCog):
         await view.wait()
         if set(view.select.values) == set(map_data.mechanics):
             return
-        await itx.client.api.edit_map(code, MapPatchDTO(restrictions=cast("list[Restrictions]", view.select.values)))
+        await itx.client.api.edit_map(
+            code, MapPatchRequest(restrictions=cast("list[Restrictions]", view.select.values))
+        )
 
     @map.command(name="link-codes")
     async def link_codes(
@@ -479,7 +488,7 @@ class ModeratorCog(BaseCog):
         Raises:
             UserFacingError: If the map could not be retrieved.
         """
-        data = LinkMapsCreateDTO(official_code=official_code, unofficial_code=unofficial_code)
+        data = LinkMapsCreateRequest(official_code=official_code, unofficial_code=unofficial_code)
 
         message = (
             "Are you sure you want to link these two maps?\n"
@@ -516,7 +525,7 @@ class ModeratorCog(BaseCog):
             reason (str): The reason why it was unlinked.
 
         """
-        data = UnlinkMapsCreateDTO(official_code=official_code, unofficial_code=unofficial_code, reason=reason)
+        data = UnlinkMapsCreateRequest(official_code=official_code, unofficial_code=unofficial_code, reason=reason)
 
         message = (
             "Are you sure you want to unlink these two maps?\n"
@@ -592,7 +601,7 @@ class ModeratorCog(BaseCog):
         message = f"Are you sure you want to override the quality value for this map (`{code}`)? This cannot be undone."
 
         async def callback() -> None:
-            await itx.client.api.override_quality_votes(code, QualityValueDTO(value=value))
+            await itx.client.api.override_quality_votes(code, QualityValueRequest(value=value))
 
         view = ConfirmationView(message, callback)
         await itx.edit_original_response(view=view)

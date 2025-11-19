@@ -3,12 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from discord import Attachment, app_commands
-from genjipk_sdk.models import Guide
-from genjipk_sdk.utilities._types import (
-    MapCategory,
-    OverwatchCode,
-    OverwatchMap,
-)
+from genjipk_sdk.maps import GuideResponse, MapCategory, OverwatchCode, OverwatchMap
 
 from utilities import transformers
 from utilities.base import BaseCog, ConfirmationView
@@ -105,7 +100,7 @@ class MapSubmissionCog(BaseCog):
         await view.wait()
         if not view.confirmed:
             return
-        data = Guide(url, itx.user.id)
+        data = GuideResponse(url, itx.user.id)
         await self.bot.api.create_guide(code, data)
 
 

@@ -8,8 +8,8 @@ import msgspec
 from aio_pika.abc import AbstractIncomingMessage
 from discord import TextChannel, app_commands, utils
 from discord.ext import commands
-from genjipk_sdk.models import XP_AMOUNTS, XP_TYPES, Notification, XpGrant
-from genjipk_sdk.models.xp import XpGrantMQ
+from genjipk_sdk.users import Notification
+from genjipk_sdk.xp import XP_AMOUNTS, XP_TYPES, XpGrantEvent, XpGrantRequest
 
 from extensions._queue_registry import register_queue_handler
 from utilities import transformers
@@ -36,7 +36,7 @@ class XPService(BaseService):
         assert isinstance(xp_channel, TextChannel)
         self.xp_channel = xp_channel
 
-    async def _process_xp_notification(self, xp_message: XpGrantMQ) -> None:
+    async def _process_xp_notification(self, xp_message: XpGrantEvent) -> None:
         """Send XP gain notifications and handle rank/prestige side effects.
 
         Posts a public XP gain notice (respecting user notification settings),
@@ -179,14 +179,14 @@ class XPService(BaseService):
     async def grant_user_xp_of_type(self, user_id: int, xp_type: XP_TYPES) -> None:
         """Grant XP of a specific type to a user and emit notifications.
 
-        Creates an `XpGrant` from the configured amount for the given type,
+        Creates an `XpGrantRequest` from the configured amount for the given type,
         applies it via the API, and triggers the notification flow.
 
         Args:
             user_id (int): ID of the user receiving XP.
             xp_type (XP_TYPES): Type/category of the XP grant.
         """
-        data = XpGrant(XP_AMOUNTS[xp_type], xp_type)
+        data = XpGrantRequest(XP_AMOUNTS[xp_type], xp_type)
         await self.bot.api.grant_user_xp(user_id, data)
 
     @register_queue_handler("api.xp.grant")
@@ -203,7 +203,7 @@ class XPService(BaseService):
             msgspec.ValidationError: If the message body cannot be decoded to the expected format.
         """
         try:
-            struct = msgspec.json.decode(message.body, type=XpGrantMQ)
+            struct = msgspec.json.decode(message.body, type=XpGrantEvent)
             if message.headers.get("x-pytest-enabled", False):
                 log.debug("Pytest message received.")
                 return
@@ -231,7 +231,7 @@ class XPCog(commands.GroupCog, group_name="xp"):
         user_data = await self.bot.api.get_user(user)
         nickname = user_data.coalesced_name if user_data else "Unknown User"
         await itx.response.send_message(f"Granting user {nickname} {amount} XP.", ephemeral=True)
-        data = XpGrant(amount, "Other")
+        data = XpGrantRequest(amount, "Other")
         await self.bot.api.grant_user_xp(user, data)
 
 

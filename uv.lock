@@ -239,14 +239,14 @@ wheels = [
 
 [[package]]
 name = "click"
-version = "8.3.0"
+version = "8.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/46/61/de6cd827efad202d7057d93e0fed9294b96952e188f7384832791c7b2254/click-8.3.0.tar.gz", hash = "sha256:e7b8232224eba16f4ebe410c25ced9f7875cb5f3263ffc93cc3e8da705e229c4", size = 276943, upload-time = "2025-09-18T17:32:23.696Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3d/fa/656b739db8587d7b5dfa22e22ed02566950fbfbcdc20311993483657a5c0/click-8.3.1.tar.gz", hash = "sha256:12ff4785d337a1bb490bb7e9c2b1ee5da3112e94a8622f26a6c77f5d2fc6842a", size = 295065, upload-time = "2025-11-15T20:45:42.706Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/db/d3/9dcc0f5797f070ec8edf30fbadfb200e71d9db6b84d211e3b2085a7589a0/click-8.3.0-py3-none-any.whl", hash = "sha256:9b9f285302c6e3064f4330c05f05b81945b2a39544279343e6e7c5f27a9baddc", size = 107295, upload-time = "2025-09-18T17:32:22.42Z" },
+    { url = "https://files.pythonhosted.org/packages/98/78/01c019cdb5d6498122777c1a43056ebb3ebfeef2076d9d026bfe15583b2b/click-8.3.1-py3-none-any.whl", hash = "sha256:981153a64e25f12d547d3426c367a4857371575ee7ad18df2a6183ab0545b2a6", size = 108274, upload-time = "2025-11-15T20:45:41.139Z" },
 ]
 
 [[package]]
@@ -371,11 +371,14 @@ wheels = [
 
 [[package]]
 name = "genjipk-sdk"
-version = "0.1.0"
-source = { git = "https://github.com/bkan0n/genjipk-sdk?rev=1ab099d03cce5d4228d2625001a9234d94a5d639#1ab099d03cce5d4228d2625001a9234d94a5d639" }
+version = "2.1.2"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "hatchling" },
     { name = "msgspec" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d9/99/cc88ed9ae644304576de9b13b23158ae8e0c29ba36de3347508cd0734bbe/genjipk_sdk-2.1.2.tar.gz", hash = "sha256:fc278f5a7d9449e2e7dc9c2992fe89629a29459f42bc6be5897442c0089e928f", size = 17707, upload-time = "2025-11-17T14:25:37.037Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d0/48/444c860641b588318bb0a1b0a25460143e0e6977f2854483223c78357117/genjipk_sdk-2.1.2-py3-none-any.whl", hash = "sha256:4ea72624c7482e285f170ce03a45b683cb8d64d5dc49edeeb43540f3103f7fcc", size = 16347, upload-time = "2025-11-17T14:25:35.706Z" },
 ]
 
 [[package]]
@@ -409,7 +412,7 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.30.0" },
     { name = "discord-ext-menus", git = "https://github.com/Rapptz/discord-ext-menus" },
     { name = "discord-py", git = "https://github.com/rapptz/discord.py?rev=master" },
-    { name = "genjipk-sdk", git = "https://github.com/bkan0n/genjipk-sdk?rev=1ab099d03cce5d4228d2625001a9234d94a5d639" },
+    { name = "genjipk-sdk", specifier = ">=2.1.2" },
     { name = "jishaku", specifier = ">=2.6.0" },
     { name = "msgspec", specifier = ">=0.19.0" },
     { name = "sentry-sdk", specifier = ">=2.29.1" },
@@ -459,21 +462,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/9a/c8/dd58967d119baab745caec2f9d853297cec1989ec1d63f677d3880632b88/gitpython-3.1.45.tar.gz", hash = "sha256:85b0ee964ceddf211c41b9f27a49086010a190fd8132a24e21f362a4b36a791c", size = 215076, upload-time = "2025-07-24T03:45:54.871Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/01/61/d4b89fec821f72385526e1b9d9a3a0385dda4a72b206d28049e2c7cd39b8/gitpython-3.1.45-py3-none-any.whl", hash = "sha256:8908cb2e02fb3b93b7eb0f2827125cb699869470432cc885f019b8fd0fccff77", size = 208168, upload-time = "2025-07-24T03:45:52.517Z" },
-]
-
-[[package]]
-name = "hatchling"
-version = "1.27.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "packaging" },
-    { name = "pathspec" },
-    { name = "pluggy" },
-    { name = "trove-classifiers" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/8f/8a/cc1debe3514da292094f1c3a700e4ca25442489731ef7c0814358816bb03/hatchling-1.27.0.tar.gz", hash = "sha256:971c296d9819abb3811112fc52c7a9751c8d381898f36533bb16f9791e941fd6", size = 54983, upload-time = "2024-12-15T17:08:11.894Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/08/e7/ae38d7a6dfba0533684e0b2136817d667588ae3ec984c1a4e5df5eb88482/hatchling-1.27.0-py3-none-any.whl", hash = "sha256:d3a2f3567c4f926ea39849cdf924c7e99e6686c9c8e288ae1037c8fa2a5d937b", size = 75794, upload-time = "2024-12-15T17:08:10.364Z" },
 ]
 
 [[package]]
@@ -816,15 +804,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pluggy"
-version = "1.6.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f9/e2/3e91f31a7d2b083fe6ef3fa267035b518369d9511ffab804f839851d2779/pluggy-1.6.0.tar.gz", hash = "sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3", size = 69412, upload-time = "2025-05-15T12:30:07.975Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746", size = 20538, upload-time = "2025-05-15T12:30:06.134Z" },
-]
-
-[[package]]
 name = "propcache"
 version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1094,15 +1073,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/7e/46/cc36c679f09f27ded940281c38607716c86cf8ba4a518d524e349c8b4874/tomli-2.3.0-cp314-cp314t-win32.whl", hash = "sha256:a1f7f282fe248311650081faafa5f4732bdbfef5d45fe3f2e702fbc6f2d496e0", size = 107563, upload-time = "2025-10-08T22:01:44.233Z" },
     { url = "https://files.pythonhosted.org/packages/84/ff/426ca8683cf7b753614480484f6437f568fd2fda2edbdf57a2d3d8b27a0b/tomli-2.3.0-cp314-cp314t-win_amd64.whl", hash = "sha256:70a251f8d4ba2d9ac2542eecf008b3c8a9fc5c3f9f02c56a9d7952612be2fdba", size = 119756, upload-time = "2025-10-08T22:01:45.234Z" },
     { url = "https://files.pythonhosted.org/packages/77/b8/0135fadc89e73be292b473cb820b4f5a08197779206b33191e801feeae40/tomli-2.3.0-py3-none-any.whl", hash = "sha256:e95b1af3c5b07d9e643909b5abbec77cd9f1217e6d0bca72b0234736b9fb1f1b", size = 14408, upload-time = "2025-10-08T22:01:46.04Z" },
-]
-
-[[package]]
-name = "trove-classifiers"
-version = "2025.11.14.15"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/bf/a9/880cccf76af9e7b322112f52e4e2dbb3534cbe671197b8f443a42189dfc7/trove_classifiers-2025.11.14.15.tar.gz", hash = "sha256:6b60f49d40bbd895bc61d8dc414fc2f2286d70eb72ed23548db8cf94f62804ca", size = 16995, upload-time = "2025-11-14T15:23:13.78Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/49/f6/73c4aa003d1237ee9bea8a46f49dc38c45dfe95af4f0da7e60678d388011/trove_classifiers-2025.11.14.15-py3-none-any.whl", hash = "sha256:d1dac259c1e908939862e3331177931c6df0a37af2c1a8debcc603d9115fcdd9", size = 14191, upload-time = "2025-11-14T15:23:12.467Z" },
 ]
 
 [[package]]

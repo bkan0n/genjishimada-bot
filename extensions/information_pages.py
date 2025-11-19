@@ -144,7 +144,7 @@ Unofficial codes exist to help players:
 
 Unofficial maps are for **reference only** and are not part of the ranking, XP, or medal systems.
 
-"""
+"""  # noqa: E501
 UNOFFICIAL_MAPS_INFO_CN = """
 **非官方地图**相当于中文社区的跑酷地图。由于我们无法监控这些地图，它们在系统中保持独立状态。
 
@@ -181,7 +181,7 @@ UNOFFICIAL_MAPS_INFO_CN = """
 
 
 通过DeepL.com（免费版）翻译
-"""
+"""  # noqa: RUF001
 
 
 class InformationButton(ui.Button):
@@ -335,8 +335,8 @@ class MapInformationView(ui.LayoutView):
                     response_view=GenericInformationView(title="Unofficial (CN) Maps", content=UNOFFICIAL_MAPS_INFO_EN),
                 ),
                 InformationButton(
-                    label="非官方（CN）地图",
-                    response_view=GenericInformationView(title="非官方（CN）地图", content=UNOFFICIAL_MAPS_INFO_CN),
+                    label="非官方（CN）地图",  # noqa: RUF001
+                    response_view=GenericInformationView(title="非官方（CN）地图", content=UNOFFICIAL_MAPS_INFO_CN),  # noqa: RUF001
                 ),
             ),
         )

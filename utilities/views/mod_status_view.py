@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal, get_args
 
 from discord import ButtonStyle, SelectOption, ui
-from genjipk_sdk.utilities import DifficultyAll
-from genjipk_sdk.utilities._types import PlaytestStatus
+from genjipk_sdk.difficulties import DifficultyAll
+from genjipk_sdk.maps import PlaytestStatus
 
 from ..base import BaseView, ConfirmationButton, ConfirmationCancelButton
 
@@ -19,7 +19,7 @@ class ModStatusButton(ui.Button):
 
         Args:
             enabled (bool): Whether the status is currently enabled.
-            status (Literal): The map status this button controls.
+            label (Literal): The map status this button controls.
         """
         self.enabled = enabled
         self._status = label
