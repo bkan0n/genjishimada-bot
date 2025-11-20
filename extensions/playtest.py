@@ -1247,13 +1247,13 @@ class FinalizeButton(discord.ui.Button["PlaytestComponentsV2View"]):
         assert itx.guild
         verification_channel = itx.guild.get_channel(itx.client.config.channels.submission.verification_queue)
         assert isinstance(verification_channel, discord.TextChannel)
-        view = MapFinalizationViewV2(itx.guild.id, self.view.data)
+        view = MapFinalizationViewV2(itx.guild.id, _view.data)
         verification_message = await verification_channel.send(view=view)
 
         playtest_edit_data = PlaytestPatchRequest(verification_id=verification_message.id)
-        if not self.view.data.playtest:
+        if not _view.data.playtest:
             raise AttributeError("The data is missing playtest.")
-        await itx.client.api.edit_playtest_meta(thread_id=self.view.data.playtest.thread_id, data=playtest_edit_data)
+        await itx.client.api.edit_playtest_meta(thread_id=_view.data.playtest.thread_id, data=playtest_edit_data)
 
 
 class PlaytestLayoutViewGallery(discord.ui.MediaGallery):
