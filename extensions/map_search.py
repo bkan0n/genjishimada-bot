@@ -350,27 +350,28 @@ class MapSearchCog(BaseCog):
             official_val = True
         else:
             official_val = False
-        if code:
-            maps = [await self.bot.api.get_map(code=code, user_id=itx.user.id)]
-        else:
-            maps = await self.bot.api.get_maps(
-                map_name=[map_name] if map_name else None,
-                official=official_val,
-                restrictions=restrictions,
-                mechanics=mechanics,
-                difficulty_exact=cast("DifficultyTop", difficulty.value) if difficulty else None,
-                minimum_quality=minimum_quality.value if minimum_quality else None,
-                creator_ids=[creator] if creator else None,
-                playtest_filter=playtest_filter,
-                medal_filter=medal_filter,
-                completion_filter=completion_filter,
-                category=[category] if category else None,
-                return_all=True,
-                user_id=itx.user.id,
-                archived=False,
-                hidden=False,
-            )
-        if not maps:
+        try:
+            if code:
+                maps = [await self.bot.api.get_map(code=code, user_id=itx.user.id)]
+            else:
+                maps = await self.bot.api.get_maps(
+                    map_name=[map_name] if map_name else None,
+                    official=official_val,
+                    restrictions=restrictions,
+                    mechanics=mechanics,
+                    difficulty_exact=cast("DifficultyTop", difficulty.value) if difficulty else None,
+                    minimum_quality=minimum_quality.value if minimum_quality else None,
+                    creator_ids=[creator] if creator else None,
+                    playtest_filter=playtest_filter,
+                    medal_filter=medal_filter,
+                    completion_filter=completion_filter,
+                    category=[category] if category else None,
+                    return_all=True,
+                    user_id=itx.user.id,
+                    archived=False,
+                    hidden=False,
+                )
+        except ValueError:
             raise UserFacingError("There are no maps with the selected filters.")
         view = MapSearchView(maps)
         await itx.edit_original_response(view=view)
@@ -455,27 +456,28 @@ class MapSearchCog(BaseCog):
             official_val = True
         else:
             official_val = False
-        if code:
-            maps = [await self.bot.api.get_map(code=code)]
-        else:
-            maps = await self.bot.api.get_maps(
-                map_name=[map_name] if map_name else None,
-                official=official_val,
-                restrictions=restrictions,
-                mechanics=mechanics,
-                difficulty_exact=cast("DifficultyTop", difficulty.value) if difficulty else None,
-                minimum_quality=minimum_quality.value if minimum_quality else None,
-                creator_ids=[creator] if creator else None,
-                playtest_filter=CN_FILTER_3_TRANSLATION_TEMP[playtest_filter],
-                medal_filter=CN_FILTER_TRANSLATIONS_TEMP[medal_filter],
-                completion_filter=CN_FILTER_TRANSLATIONS_TEMP[completion_filter],
-                category=[category] if category else None,
-                return_all=True,
-                user_id=itx.user.id,
-                archived=False,
-                hidden=False,
-            )
-        if not maps:
+        try:
+            if code:
+                maps = [await self.bot.api.get_map(code=code)]
+            else:
+                maps = await self.bot.api.get_maps(
+                    map_name=[map_name] if map_name else None,
+                    official=official_val,
+                    restrictions=restrictions,
+                    mechanics=mechanics,
+                    difficulty_exact=cast("DifficultyTop", difficulty.value) if difficulty else None,
+                    minimum_quality=minimum_quality.value if minimum_quality else None,
+                    creator_ids=[creator] if creator else None,
+                    playtest_filter=CN_FILTER_3_TRANSLATION_TEMP[playtest_filter],
+                    medal_filter=CN_FILTER_TRANSLATIONS_TEMP[medal_filter],
+                    completion_filter=CN_FILTER_TRANSLATIONS_TEMP[completion_filter],
+                    category=[category] if category else None,
+                    return_all=True,
+                    user_id=itx.user.id,
+                    archived=False,
+                    hidden=False,
+                )
+        except ValueError:
             raise UserFacingError("根据所选筛选条件，未找到匹配的地图。")  # noqa: RUF001
         view = MapSearchView(maps, enable_cn_translation=True)
         await itx.edit_original_response(view=view)
