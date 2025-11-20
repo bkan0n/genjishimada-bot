@@ -11,6 +11,7 @@ from extensions.api_service import CompletionFilter, MedalFilter, OfficialFilter
 from utilities import transformers
 from utilities.base import BaseCog
 from utilities.emojis import generate_all_star_rating_strings
+from utilities.errors import UserFacingError
 from utilities.formatter import FilteredFormatter, FormattableProtocol
 from utilities.maps import MapModel
 from utilities.paginator import PaginatorView
@@ -369,6 +370,8 @@ class MapSearchCog(BaseCog):
                 archived=False,
                 hidden=False,
             )
+        if not maps:
+            raise UserFacingError("There are no maps with the selected filters.")
         view = MapSearchView(maps)
         await itx.edit_original_response(view=view)
         view.original_interaction = itx
@@ -472,6 +475,8 @@ class MapSearchCog(BaseCog):
                 archived=False,
                 hidden=False,
             )
+        if not maps:
+            raise UserFacingError("根据所选筛选条件，未找到匹配的地图。")  # noqa: RUF001
         view = MapSearchView(maps, enable_cn_translation=True)
         await itx.edit_original_response(view=view)
         view.original_interaction = itx
@@ -494,6 +499,8 @@ class MapSearchCog(BaseCog):
         guides = await self.bot.api.get_guides(code, include_records)
         for guide in guides:
             guide.thumbnail = await self.bot.thumbnail_service.get_thumbnail(guide.url)
+        if not guides:
+            raise UserFacingError("There are no guides for this map.")
         view = MapGuideView(code, guides)
         await itx.edit_original_response(view=view)
         view.original_interaction = itx
