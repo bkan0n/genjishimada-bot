@@ -145,10 +145,6 @@ class CompletionsVerificationAcceptButton(ui.Button):
                 )
             )
 
-        # TODO: Context Command to reenable the buttons on the view. /repair
-        # it should take the message.id as the context command and repair based on location.
-        # else present a view with explicit options
-
 
 class CompletionsVerificationRejectButton(ui.Button):
     view: "CompletionVerificationView"
@@ -1268,6 +1264,7 @@ class CompletionsCog(BaseCog):
             channel_id=self.bot.config.channels.submission.completions,
         )
         await itx.edit_original_response(view=view)
+        view.original_interaction = itx
 
     @app_commands.command(name="submit-completion")
     @app_commands.choices(

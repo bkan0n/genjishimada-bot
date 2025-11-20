@@ -40,8 +40,8 @@ CN_TRANSLATIONS_TEMP = {
     "Busan Stadium": "釜山体育场",
     "Busan Stadium Classic": "釜山体育场（经典）",  # noqa: RUF001
     "Castillo": "城堡",
-    "Château Guillard": "吉拉德堡",
-    "Château Guillard Halloween": "万圣节吉拉德堡",
+    "Chateau Guillard": "吉拉德堡",
+    "Chateau Guillard Halloween": "万圣节吉拉德堡",
     "Circuit Royal": "皇家赛道",
     "Colosseo": "斗兽场",
     "Dorado": "多拉多",
@@ -49,8 +49,8 @@ CN_TRANSLATIONS_TEMP = {
     "Ecopoint: Antarctica Winter": "圣诞节生态监测站：南极洲",  # noqa: RUF001
     "Eichenwalde": "艾兴瓦尔德",
     "Eichenwalde Halloween": "万圣节艾兴瓦尔德",
-    "Esperança": "埃斯佩兰萨",
-    "Estádio das Rãs": "弗格体育场",
+    "Esperanca": "埃斯佩兰萨",
+    "Estadio das Ras": "弗格体育场",
     "Hanamura": "花村",
     "Hanamura Winter": "圣诞节花村",
     "Hanaoka": "花冈",
