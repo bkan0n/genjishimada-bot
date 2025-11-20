@@ -79,7 +79,9 @@ class EditGuideURLModal(ui.Modal):
             "Are you sure you want to edit this guide?\n\nOriginal:\n"
             f"{formatted_data}\nOld URL: {self._guide.url}\nNew URL: {self.url.value}"
         )
-        await itx.response.send_message(view=ConfirmationView(message, confirm_callback), ephemeral=True)
+        view = ConfirmationView(message, confirm_callback)
+        await itx.response.send_message(view=view, ephemeral=True)
+        view.original_interaction = itx
 
 
 class EditGuideButton(ui.Button["ModGuidePaginatorView"]):

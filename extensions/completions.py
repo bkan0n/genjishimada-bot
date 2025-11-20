@@ -1324,6 +1324,7 @@ class CompletionsCog(BaseCog):
 
         view = ConfirmationView(message=message, image_url=screenshot.url)
         await itx.edit_original_response(view=view)
+        view.original_interaction = itx
         await view.wait()
         if view.confirmed is not True:
             return
