@@ -1208,6 +1208,7 @@ class CompletionsCog(BaseCog):
             channel_id=self.bot.config.channels.submission.completions,
         )
         await itx.edit_original_response(view=view)
+        view.original_interaction = itx
 
     @app_commands.command(name="world-records")
     async def get_world_records_for_user(

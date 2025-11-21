@@ -373,6 +373,8 @@ class MapSearchCog(BaseCog):
                 )
         except ValueError:
             raise UserFacingError("There are no maps with the selected filters.")
+        if not maps:
+            raise UserFacingError("There are no maps with the selected filters.")
         view = MapSearchView(maps)
         await itx.edit_original_response(view=view)
         view.original_interaction = itx
@@ -478,6 +480,8 @@ class MapSearchCog(BaseCog):
                     hidden=False,
                 )
         except ValueError:
+            raise UserFacingError("根据所选筛选条件，未找到匹配的地图。")  # noqa: RUF001
+        if not maps:
             raise UserFacingError("根据所选筛选条件，未找到匹配的地图。")  # noqa: RUF001
         view = MapSearchView(maps, enable_cn_translation=True)
         await itx.edit_original_response(view=view)
