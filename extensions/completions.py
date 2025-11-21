@@ -1295,10 +1295,6 @@ class CompletionsCog(BaseCog):
             video (str | None): Optional video URL (YouTube preferred).
         """
         await itx.response.defer(ephemeral=True, thinking=True)
-        channel_id = self.bot.config.channels.submission.completions
-        assert itx.channel
-        if itx.channel.id != channel_id:
-            raise UserFacingError(f"You need to use this command in <#{channel_id}>.")
 
         ow_usernames = await itx.client.api.get_overwatch_usernames(itx.user.id)
 
