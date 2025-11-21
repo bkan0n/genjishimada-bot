@@ -1016,7 +1016,6 @@ class CompletionsUserPaginator(PaginatorView[CompletionUserFormattable]):
             Sequence[ui.Item]: UI components representing the page.
         """
         sections = []
-        sections.append(ui.TextDisplay(f"> `Also Known As`{self.current_page[0].also_known_as}"))
         for completion in self.current_page:
             section = ui.Section(
                 ui.TextDisplay(FilteredFormatter(completion).format()),
