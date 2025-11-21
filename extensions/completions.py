@@ -1003,7 +1003,7 @@ class CompletionsUserPaginator(PaginatorView[CompletionUserFormattable]):
         """
         self.guild_id = guild_id
         self.channel_id = channel_id
-        super().__init__(f"Completions - {username}", data, page_size=10)
+        super().__init__(f"Completions - {username}", data, page_size=6)
 
     def build_page_body(self) -> Sequence[ui.Item]:
         """Build the UI page body for the current user's completions.
