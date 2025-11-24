@@ -777,10 +777,11 @@ class ModActionsConfirmButton(discord.ui.Button):
             itx (GenjiItx): The interaction that triggered the button.
         """
         self.view.confirmed = True
+        _view = self.view
         self.view.clear_items()
-        self.view.build_final_view("confirmed")
-        await itx.response.edit_message(view=self.view)
-        self.view.stop()
+        _view.build_final_view("confirmed")
+        await itx.response.edit_message(view=_view)
+        _view.stop()
 
 
 class ModActionsRejectButton(discord.ui.Button):
@@ -800,11 +801,12 @@ class ModActionsRejectButton(discord.ui.Button):
         Args:
             itx (GenjiItx): The interaction that triggered the button.
         """
+        _view = self.view
         self.view.clear_items()
-        self.view.confirmed = False
-        self.view.build_final_view("rejected")
-        await itx.response.edit_message(view=self.view)
-        self.view.stop()
+        _view.confirmed = False
+        _view.build_final_view("rejected")
+        await itx.response.edit_message(view=_view)
+        _view.stop()
 
 
 class ModActionsViewV2(discord.ui.LayoutView):
