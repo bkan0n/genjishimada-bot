@@ -27,7 +27,7 @@ from genjipk_sdk.maps import (
 from genjipk_sdk.users import Creator
 
 from utilities.base import BaseView
-from utilities.emojis import VERIFIED_BRONZE, VERIFIED_GOLD, VERIFIED_SILVER
+from utilities.emojis import VERIFIED_BRONZE, VERIFIED_GOLD, VERIFIED_SILVER, stars_rating_string
 from utilities.extra import poll_job_until_complete
 from utilities.formatter import FilteredFormatter
 
@@ -142,6 +142,7 @@ class MapModel(MapResponse):
                 "Difficulty": self.difficulty,
                 "Mechanics": ", ".join(_mechanics) if _mechanics else None,
                 "Restrictions": ", ".join(_restrictions) if _mechanics else None,
+                "Quality": stars_rating_string(self.ratings),
                 "Guide": ", ".join(_guides),
                 "Medals": _medals,
                 "Desc": self.description,
