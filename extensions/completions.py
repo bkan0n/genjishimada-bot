@@ -454,10 +454,14 @@ class CompletionView(ui.LayoutView):
             if self.playtest_jump_url
             else ""
         )
+        if self._data.completion and self._data.map_name:
+            title_text = f"# {self._data.name} has completed {self._data.map_name}"
+        else:
+            title_text = f"# New Submission from {self._data.name}"
         container = ui.Container(
             ui.Section(
                 ui.TextDisplay(
-                    f"# New Submission from {self._data.name}\n{verifier_message}\n{formatted_model}\n{playtest_text}"
+                    f"{title_text}\n{verifier_message}\n{formatted_model}\n{playtest_text}"
                 ),
                 accessory=ui.Thumbnail(
                     get_completion_icon_url(
