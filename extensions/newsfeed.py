@@ -768,7 +768,7 @@ class NewsfeedService:
         Args:
             bot (core.Genji): The Discord bot instance.
         """
-        self._bot = bot
+        self.bot = bot
         self._registry_by_cls: dict[type, BaseNewsfeedBuilder] = {}
         self._register_newsfeed_item_builders()
 
@@ -780,7 +780,7 @@ class NewsfeedService:
         """
         self._registry_by_cls.clear()
         for cls in BaseNewsfeedBuilder.__subclasses__():
-            builder = cls(self._bot)
+            builder = cls(self.bot)
             payload_cls = getattr(builder, "payload_cls", None)
             if payload_cls is None:
                 raise ValueError(f"{cls.__name__} missing payload_cls")
@@ -813,7 +813,7 @@ class NewsfeedService:
             raise ValueError(f"No builder registered for payload class: {type(payload).__name__}")
 
         view = await maybe_coroutine(builder.build, payload)
-        target = channel or self._bot.get_channel(self._bot.config.channels.updates.newsfeed)
+        target = channel or self.bot.get_channel(self.bot.config.channels.updates.newsfeed)
         if not isinstance(target, (discord.TextChannel, discord.Thread)):
             raise RuntimeError("Resolved channel is not a TextChannel or Thread.")
         await target.send(view=view, allowed_mentions=discord.AllowedMentions.none())
@@ -835,35 +835,35 @@ class NewsfeedService:
 
             assert message.message_id
             data = ClaimCreateRequest(message.message_id)
-            res = await self._bot.api.claim_idempotency(data)
+            res = await self.bot.api.claim_idempotency(data)
             if not res.claimed:
                 log.debug("[Idempotency] Duplicate: %s", message.message_id)
                 return
 
             log.debug("[RabbitMQ] Processing newsfeed id: %s", qmsg.newsfeed_id)
 
-            event = await self._bot.api.get_newsfeed_event(qmsg.newsfeed_id)
+            event = await self.bot.api.get_newsfeed_event(qmsg.newsfeed_id)
             if event is None:
                 log.warning("Newsfeed id %s not found via API.", qmsg.newsfeed_id)
                 return
 
-            cog: "PlaytestCog" = self._bot.cogs["PlaytestCog"]  # pyright: ignore[reportAssignmentType]
+            cog: "PlaytestCog" = self.bot.cogs["PlaytestCog"]  # pyright: ignore[reportAssignmentType]
             if event.event_type == "map_edit":
                 assert isinstance(event.payload, NewsfeedMapEdit)
                 for change in event.payload.changes:
                     if change.field == "Code":
-                        _map = await self._bot.api.get_map(code=cast("OverwatchCode", change.new))
+                        _map = await self.bot.api.get_map(code=cast("OverwatchCode", change.new))
                         break
                 else:
-                    _map = await self._bot.api.get_map(code=event.payload.code)
+                    _map = await self.bot.api.get_map(code=event.payload.code)
                 if _map.playtesting == "In Progress":
-                    guild = self._bot.get_guild(self._bot.config.guild)
+                    guild = self.bot.get_guild(self.bot.config.guild)
                     assert guild and _map.playtest
                     thread = guild.get_thread(_map.playtest.thread_id)
                     await self._publish_event(event, channel=thread)
 
                     view = cog.playtest_views[_map.playtest.thread_id]
-                    await view.fetch_data_and_rebuild(self._bot)
+                    await view.fetch_data_and_rebuild(self.bot)
                     if not thread:
                         log.warning(f"Was not able to find thread for playtest view. {_map.playtest.thread_id}")
                         return
@@ -873,14 +873,14 @@ class NewsfeedService:
 
             if event.event_type == "guide":
                 assert isinstance(event.payload, NewsfeedGuide)
-                _map = await self._bot.api.get_map(code=event.payload.code)
+                _map = await self.bot.api.get_map(code=event.payload.code)
                 if _map.playtesting == "In Progress":
-                    guild = self._bot.get_guild(self._bot.config.guild)
+                    guild = self.bot.get_guild(self.bot.config.guild)
                     assert guild and _map.playtest
                     thread = guild.get_thread(_map.playtest.thread_id)
                     await self._publish_event(event, channel=thread)
                     view = cog.playtest_views[_map.playtest.thread_id]
-                    await view.fetch_data_and_rebuild(self._bot)
+                    await view.fetch_data_and_rebuild(self.bot)
                     if not thread:
                         log.warning(f"Was not able to find thread for playtest view. {_map.playtest.thread_id}")
                         return
@@ -891,5 +891,5 @@ class NewsfeedService:
             await self._publish_event(event)
 
         except Exception:
-            await self._bot.api.delete_claimed_idempotency(data)
+            await self.bot.api.delete_claimed_idempotency(data)
             log.exception("Failed to process newsfeed create message.")
