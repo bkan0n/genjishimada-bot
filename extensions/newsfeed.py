@@ -19,7 +19,6 @@ from discord.ui import (
 )
 from discord.utils import maybe_coroutine
 from genjipk_sdk.difficulties import DIFFICULTY_TO_RANK_MAP, DifficultyAll, convert_extended_difficulty_to_top_level
-from genjipk_sdk.internal import ClaimCreateRequest
 from genjipk_sdk.maps import GuideURL, OverwatchCode, OverwatchMap
 from genjipk_sdk.newsfeed import (
     NewsfeedAnnouncement,
@@ -39,7 +38,7 @@ from genjipk_sdk.newsfeed import (
     NewsfeedUnlinkedMap,
 )
 
-from extensions._queue_registry import register_queue_handler
+from extensions._queue_registry import queue_consumer
 from utilities.completions import get_completion_icon_url
 from utilities.formatter import FilteredFormatter, FormattableProtocol
 
@@ -819,77 +818,54 @@ class NewsfeedService:
         await target.send(view=view, allowed_mentions=discord.AllowedMentions.none())
         view.stop()
 
-    @register_queue_handler("api.newsfeed.create")
-    async def _process_newsfeed_create(self, message: AbstractIncomingMessage) -> None:  # noqa: PLR0911, PLR0912
-        """Consume and handle a message indicating a new Newsfeed event was created.
+    @queue_consumer("api.newsfeed.create", struct_type=NewsfeedDispatchEvent, idempotent=True)
+    async def _process_newsfeed_create(self, event: NewsfeedDispatchEvent, _: AbstractIncomingMessage) -> None:
+        log.debug("[RabbitMQ] Processing newsfeed id: %s", event.newsfeed_id)
 
-        Args:
-            message (AbstractIncomingMessage): The incoming message from the queue.
-        """
-        try:
-            qmsg = msgspec.json.decode(message.body, type=NewsfeedDispatchEvent)
+        newsfeed_event = await self.bot.api.get_newsfeed_event(event.newsfeed_id)
+        if newsfeed_event is None:
+            log.warning("Newsfeed id %s not found via API.", event.newsfeed_id)
+            return
 
-            if message.headers.get("x-pytest-enabled"):
-                log.debug("[RabbitMQ] Pytest message received; skipping publish.")
-                return
+        cog: "PlaytestCog" = self.bot.cogs["PlaytestCog"]  # pyright: ignore[reportAssignmentType]
+        if newsfeed_event.event_type == "map_edit":
+            assert isinstance(newsfeed_event.payload, NewsfeedMapEdit)
+            for change in newsfeed_event.payload.changes:
+                if change.field == "Code":
+                    _map = await self.bot.api.get_map(code=cast("OverwatchCode", change.new))
+                    break
+            else:
+                _map = await self.bot.api.get_map(code=newsfeed_event.payload.code)
+            if _map.playtesting == "In Progress":
+                guild = self.bot.get_guild(self.bot.config.guild)
+                assert guild and _map.playtest
+                thread = guild.get_thread(_map.playtest.thread_id)
+                await self._publish_event(newsfeed_event, channel=thread)
 
-            assert message.message_id
-            data = ClaimCreateRequest(message.message_id)
-            res = await self.bot.api.claim_idempotency(data)
-            if not res.claimed:
-                log.debug("[Idempotency] Duplicate: %s", message.message_id)
-                return
-
-            log.debug("[RabbitMQ] Processing newsfeed id: %s", qmsg.newsfeed_id)
-
-            event = await self.bot.api.get_newsfeed_event(qmsg.newsfeed_id)
-            if event is None:
-                log.warning("Newsfeed id %s not found via API.", qmsg.newsfeed_id)
-                return
-
-            cog: "PlaytestCog" = self.bot.cogs["PlaytestCog"]  # pyright: ignore[reportAssignmentType]
-            if event.event_type == "map_edit":
-                assert isinstance(event.payload, NewsfeedMapEdit)
-                for change in event.payload.changes:
-                    if change.field == "Code":
-                        _map = await self.bot.api.get_map(code=cast("OverwatchCode", change.new))
-                        break
-                else:
-                    _map = await self.bot.api.get_map(code=event.payload.code)
-                if _map.playtesting == "In Progress":
-                    guild = self.bot.get_guild(self.bot.config.guild)
-                    assert guild and _map.playtest
-                    thread = guild.get_thread(_map.playtest.thread_id)
-                    await self._publish_event(event, channel=thread)
-
-                    view = cog.playtest_views[_map.playtest.thread_id]
-                    await view.fetch_data_and_rebuild(self.bot)
-                    if not thread:
-                        log.warning(f"Was not able to find thread for playtest view. {_map.playtest.thread_id}")
-                        return
-                    m = thread.get_partial_message(_map.playtest.thread_id)
-                    await m.edit(view=view)
+                view = cog.playtest_views[_map.playtest.thread_id]
+                await view.fetch_data_and_rebuild(self.bot)
+                if not thread:
+                    log.warning(f"Was not able to find thread for playtest view. {_map.playtest.thread_id}")
                     return
+                m = thread.get_partial_message(_map.playtest.thread_id)
+                await m.edit(view=view)
+                return
 
-            if event.event_type == "guide":
-                assert isinstance(event.payload, NewsfeedGuide)
-                _map = await self.bot.api.get_map(code=event.payload.code)
-                if _map.playtesting == "In Progress":
-                    guild = self.bot.get_guild(self.bot.config.guild)
-                    assert guild and _map.playtest
-                    thread = guild.get_thread(_map.playtest.thread_id)
-                    await self._publish_event(event, channel=thread)
-                    view = cog.playtest_views[_map.playtest.thread_id]
-                    await view.fetch_data_and_rebuild(self.bot)
-                    if not thread:
-                        log.warning(f"Was not able to find thread for playtest view. {_map.playtest.thread_id}")
-                        return
-                    m = thread.get_partial_message(_map.playtest.thread_id)
-                    await m.edit(view=view)
+        if newsfeed_event.event_type == "guide":
+            assert isinstance(newsfeed_event.payload, NewsfeedGuide)
+            _map = await self.bot.api.get_map(code=newsfeed_event.payload.code)
+            if _map.playtesting == "In Progress":
+                guild = self.bot.get_guild(self.bot.config.guild)
+                assert guild and _map.playtest
+                thread = guild.get_thread(_map.playtest.thread_id)
+                await self._publish_event(newsfeed_event, channel=thread)
+                view = cog.playtest_views[_map.playtest.thread_id]
+                await view.fetch_data_and_rebuild(self.bot)
+                if not thread:
+                    log.warning(f"Was not able to find thread for playtest view. {_map.playtest.thread_id}")
                     return
+                m = thread.get_partial_message(_map.playtest.thread_id)
+                await m.edit(view=view)
+                return
 
-            await self._publish_event(event)
-
-        except Exception:
-            await self.bot.api.delete_claimed_idempotency(data)
-            log.exception("Failed to process newsfeed create message.")
+        await self._publish_event(newsfeed_event)
