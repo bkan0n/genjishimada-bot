@@ -12,10 +12,7 @@ from aio_pika.exceptions import QueueEmpty
 from aio_pika.pool import Pool
 from discord import TextChannel
 
-from extensions._queue_registry import (
-    _registered_queue_handlers,
-    finalize_queue_handlers,
-)
+from extensions._queue_registry import finalize_queue_handlers
 
 if TYPE_CHECKING:
     from aio_pika.abc import AbstractRobustConnection
@@ -67,27 +64,6 @@ class RabbitService:
         self._setup_task = asyncio.create_task(self._set_up_queues())
         log.debug("[DLQ] Will scan: %s", self.list_target_dlqs())
         self.start_dlq_processor()
-
-    def _bind_registered_handlers(self) -> None:
-        for queue_name, fn in _registered_queue_handlers:
-            log.debug(f"[⏳] Attempting to bind handler for '{queue_name}': {fn.__qualname__}")
-            if hasattr(fn, "__self__"):  # Already bound method
-                self._queues[queue_name] = fn
-                log.debug(f"[✓] Bound bound method for queue '{queue_name}': {fn}")
-            else:
-                instance_name = fn.__qualname__.split(".")[0]
-                instance = getattr(self._bot, instance_name, None)
-                if instance:
-                    bound_fn = getattr(instance, fn.__name__, None)
-                    if bound_fn:
-                        self._queues[queue_name] = bound_fn
-                        log.debug(f"[✓] Bound method '{fn.__name__}' on {instance_name} to queue '{queue_name}'")
-                        continue
-                if fn.__name__ in globals():
-                    self._queues[queue_name] = fn
-                    log.debug(f"[✓] Bound global function '{fn.__name__}' to queue '{queue_name}'")
-                else:
-                    log.debug(f"[✗] Failed to bind queue handler '{fn.__name__}' for queue '{queue_name}'")
 
     async def _set_up_queues(self) -> None:
         """Declare and consume all registered queues, including DLQs.
