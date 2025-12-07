@@ -7,7 +7,6 @@ from logging import getLogger
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, NamedTuple, cast
 
 import discord
-import msgspec
 from discord.app_commands import AppCommandError
 from discord.ui import Item
 from genjipk_sdk.difficulties import (
@@ -17,7 +16,6 @@ from genjipk_sdk.difficulties import (
     convert_extended_difficulty_to_top_level,
     convert_raw_difficulty_to_difficulty_all,
 )
-from genjipk_sdk.internal import ClaimCreateRequest
 from genjipk_sdk.maps import (
     MapPartialResponse,
     MapPatchRequest,
@@ -40,7 +38,7 @@ from genjipk_sdk.maps import (
 from genjipk_sdk.newsfeed import NewsfeedEvent, NewsfeedNewMap
 from genjipk_sdk.users import Notification
 
-from extensions._queue_registry import register_queue_handler
+from extensions._queue_registry import queue_consumer
 from utilities import BaseCog, BaseService
 from utilities.base import ConfirmationView
 from utilities.errors import APIHTTPError, UserFacingError
@@ -67,14 +65,6 @@ _disabled_notifications_alert = (
 class PlaytestService(BaseService):
     playtest_channel: discord.ForumChannel
     verification_channel: discord.TextChannel
-
-    def __init__(self, bot: core.Genji) -> None:
-        """Initialize the playtest manager.
-
-        Args:
-            bot (core.Genji): Bot instance for Discord and API access.
-        """
-        super().__init__(bot=bot)
 
     async def _resolve_channels(self) -> None:
         """Resolve and cache the playtest forum channel.
@@ -153,39 +143,11 @@ class PlaytestService(BaseService):
         await message.edit(content=None, view=view, attachments=[file])
         await thread.send(f"<@{playtest_data.primary_creator_id}>")
 
-    @register_queue_handler("api.playtest.create")
-    async def _process_create_playtest_message(self, message: AbstractIncomingMessage) -> None:
-        """Handle a RabbitMQ message to create a playtest thread.
-
-        Decodes the message and initiates the playtest creation process via
-        `add_playtest`.
-
-        Args:
-            message (AbstractIncomingMessage): The message containing the playtest creation payload.
-
-        Raises:
-            msgspec.ValidationError: If the message body cannot be decoded to the expected format.
-        """
-        try:
-            struct = msgspec.json.decode(message.body, type=PlaytestCreatedEvent)
-            if message.headers.get("x-pytest-enabled", False):
-                log.debug("Pytest message received.")
-                return
-
-            assert message.message_id
-            data = ClaimCreateRequest(message.message_id)
-            res = await self.bot.api.claim_idempotency(data)
-            if not res.claimed:
-                log.debug("[Idempotency] Duplicate: %s", message.message_id)
-                return
-
-            log.debug(f"[x] [RabbitMQ] Processing message: {struct.code}")
-
-            model = await self.bot.api.get_partial_map(struct.code)
-            await self._add_playtest(model, struct.playtest_id)
-        except Exception as e:
-            await self.bot.api.delete_claimed_idempotency(data)
-            raise e
+    @queue_consumer("api.playtest.create", struct_type=PlaytestCreatedEvent, idempotent=True)
+    async def _process_create_playtest_message(self, event: PlaytestCreatedEvent, _: AbstractIncomingMessage) -> None:
+        log.debug(f"[x] [RabbitMQ] Processing message: {event.code}")
+        model = await self.bot.api.get_partial_map(event.code)
+        await self._add_playtest(model, event.playtest_id)
 
     async def _set_playtesting_status(self, *, code: str, status: PlaytestStatus) -> None:
         """Set the map's playtesting status via API.
@@ -517,167 +479,78 @@ class PlaytestService(BaseService):
         await self._rebuild_view_and_plot(thread_id=thread_id)
         await self._announce_vote_in_thread(thread_id=thread_id, voter_id=voter_id, label=None)
 
-    @register_queue_handler("api.playtest.vote.cast")
-    async def _process_vote_cast(self, message: AbstractIncomingMessage) -> None:
-        """Consume 'vote cast' events and apply thread-side updates.
-
-        Args:
-            message (AbstractIncomingMessage): MQ message with `PlaytestVoteCast`.
-        """
-        if message.headers.get("x-pytest-enabled", False):
-            return
-
-        s = msgspec.json.decode(message.body, type=PlaytestVoteCastEvent)
+    @queue_consumer("api.playtest.vote.cast", struct_type=PlaytestVoteCastEvent)
+    async def _process_vote_cast(self, event: PlaytestVoteCastEvent, _: AbstractIncomingMessage) -> None:
+        log.debug(
+            f"[RabbitMQ] Processing playest vote event {event.thread_id=} {event.voter_id=} {event.difficulty_value=}"
+        )
         await self._apply_vote_discord_side(
-            thread_id=s.thread_id,
-            voter_id=s.voter_id,
-            difficulty_value=s.difficulty_value,
+            thread_id=event.thread_id,
+            voter_id=event.voter_id,
+            difficulty_value=event.difficulty_value,
         )
 
-    @register_queue_handler("api.playtest.vote.remove")
-    async def _process_vote_remove(self, message: AbstractIncomingMessage) -> None:
-        """Consume 'vote removed' events and apply thread-side updates.
-
-        Args:
-            message (AbstractIncomingMessage): MQ message with `PlaytestVoteRemoved`.
-        """
-        if message.headers.get("x-pytest-enabled", False):
-            return
-        s = msgspec.json.decode(message.body, type=PlaytestVoteRemovedEvent)
+    @queue_consumer("api.playtest.vote.remove", struct_type=PlaytestVoteRemovedEvent)
+    async def _process_vote_remove(self, event: PlaytestVoteRemovedEvent, _: AbstractIncomingMessage) -> None:
+        log.debug(f"[RabbitMQ] Processing playest vote remove event {event.thread_id=} {event.voter_id=}")
         await self._remove_vote_discord_side(
-            thread_id=s.thread_id,
-            voter_id=s.voter_id,
+            thread_id=event.thread_id,
+            voter_id=event.voter_id,
         )
 
-    @register_queue_handler("api.playtest.approve")
-    async def _process_approve_playtest(self, message: AbstractIncomingMessage) -> None:
-        """Consume 'approve' playtest events and perform side effects.
+    @queue_consumer("api.playtest.approve", struct_type=PlaytestApprovedEvent, idempotent=True)
+    async def _process_approve_playtest(self, event: PlaytestApprovedEvent, _: AbstractIncomingMessage) -> None:
+        log.debug(f"[RabbitMQ] Processing playest approved event {event.code=} {event.thread_id=}")
+        await self._approve_playtest(
+            code=event.code,
+            thread_id=event.thread_id,
+            verifier_id=event.verifier_id,
+            difficulty=event.difficulty,
+            primary_creator_id=event.primary_creator_id,
+        )
 
-        Args:
-            message (AbstractIncomingMessage): MQ message with `PlaytestApprove`.
-        """
-        try:
-            if message.headers.get("x-pytest-enabled", False):
-                return
+    @queue_consumer("api.playtest.force_accept", struct_type=PlaytestForceAcceptedEvent, idempotent=True)
+    async def _process_force_accept_playtest(
+        self, event: PlaytestForceAcceptedEvent, _: AbstractIncomingMessage
+    ) -> None:
+        log.debug(f"[RabbitMQ] Processing playest force accept event {event.thread_id=}")
+        playtest_data = await self.bot.api.get_playtest(event.thread_id)
+        map_data = await self.bot.api.get_map(code=playtest_data.code)
+        await self._force_accept_playtest(
+            code=map_data.code,
+            thread_id=event.thread_id,
+            difficulty=event.difficulty,
+            verifier_id=event.verifier_id,
+            notify_primary_creator_id=map_data.primary_creator_id,
+        )
 
-            assert message.message_id
-            data = ClaimCreateRequest(message.message_id)
-            res = await self.bot.api.claim_idempotency(data)
-            if not res.claimed:
-                log.debug("[Idempotency] Duplicate: %s", message.message_id)
-                return
+    @queue_consumer("api.playtest.force_deny", struct_type=PlaytestForceDeniedEvent, idempotent=True)
+    async def _process_force_deny_playtest(self, event: PlaytestForceDeniedEvent, _: AbstractIncomingMessage) -> None:
+        log.debug(f"[RabbitMQ] Processing playest force deny event {event.thread_id=}")
+        playtest_data = await self.bot.api.get_playtest(event.thread_id)
+        map_data = await self.bot.api.get_map(code=playtest_data.code)
+        await self._force_deny_playtest(
+            code=map_data.code,
+            thread_id=event.thread_id,
+            verifier_id=event.verifier_id,
+            reason=event.reason,
+            notify_primary_creator_id=map_data.primary_creator_id,
+        )
 
-            s = msgspec.json.decode(message.body, type=PlaytestApprovedEvent)
-
-            await self._approve_playtest(
-                code=s.code,
-                thread_id=s.thread_id,
-                verifier_id=s.verifier_id,
-                difficulty=s.difficulty,
-                primary_creator_id=s.primary_creator_id,
-            )
-        except Exception as e:
-            await self.bot.api.delete_claimed_idempotency(data)
-            raise e
-
-    @register_queue_handler("api.playtest.force_accept")
-    async def _process_force_accept_playtest(self, message: AbstractIncomingMessage) -> None:
-        """Consume 'force accept' playtest events and perform side effects.
-
-        Args:
-            message (AbstractIncomingMessage): MQ message with `PlaytestForceAccept`.
-        """
-        try:
-            if message.headers.get("x-pytest-enabled", False):
-                return
-
-            assert message.message_id
-            data = ClaimCreateRequest(message.message_id)
-            res = await self.bot.api.claim_idempotency(data)
-            if not res.claimed:
-                log.debug("[Idempotency] Duplicate: %s", message.message_id)
-                return
-
-            s = msgspec.json.decode(message.body, type=PlaytestForceAcceptedEvent)
-            log.debug(f"{s=}")
-            playtest_data = await self.bot.api.get_playtest(s.thread_id)
-            map_data = await self.bot.api.get_map(code=playtest_data.code)
-            await self._force_accept_playtest(
-                code=map_data.code,
-                thread_id=s.thread_id,
-                difficulty=s.difficulty,
-                verifier_id=s.verifier_id,
-                notify_primary_creator_id=map_data.primary_creator_id,
-            )
-        except Exception as e:
-            await self.bot.api.delete_claimed_idempotency(data)
-            raise e
-
-    @register_queue_handler("api.playtest.force_deny")
-    async def _process_force_deny_playtest(self, message: AbstractIncomingMessage) -> None:
-        """Consume 'force deny' playtest events and perform side effects.
-
-        Args:
-            message (AbstractIncomingMessage): MQ message with `PlaytestForceDeny`.
-        """
-        try:
-            if message.headers.get("x-pytest-enabled", False):
-                return
-
-            assert message.message_id
-            data = ClaimCreateRequest(message.message_id)
-            res = await self.bot.api.claim_idempotency(data)
-            if not res.claimed:
-                log.debug("[Idempotency] Duplicate: %s", message.message_id)
-                return
-
-            s = msgspec.json.decode(message.body, type=PlaytestForceDeniedEvent)
-            playtest_data = await self.bot.api.get_playtest(s.thread_id)
-            map_data = await self.bot.api.get_map(code=playtest_data.code)
-            await self._force_deny_playtest(
-                code=map_data.code,
-                thread_id=s.thread_id,
-                verifier_id=s.verifier_id,
-                reason=s.reason,
-                notify_primary_creator_id=map_data.primary_creator_id,
-            )
-        except Exception as e:
-            await self.bot.api.delete_claimed_idempotency(data)
-            raise e
-
-    @register_queue_handler("api.playtest.reset")
-    async def _process_reset_playtest(self, message: AbstractIncomingMessage) -> None:
-        """Consume 'reset' playtest events and perform side effects.
-
-        Args:
-            message (AbstractIncomingMessage): MQ message with `PlaytestReset`.
-        """
-        try:
-            if message.headers.get("x-pytest-enabled", False):
-                return
-
-            assert message.message_id
-            data = ClaimCreateRequest(message.message_id)
-            res = await self.bot.api.claim_idempotency(data)
-            if not res.claimed:
-                log.debug("[Idempotency] Duplicate: %s", message.message_id)
-                return
-
-            s = msgspec.json.decode(message.body, type=PlaytestResetEvent)
-            playtest_data = await self.bot.api.get_playtest(s.thread_id)
-            map_data = await self.bot.api.get_map(code=playtest_data.code)
-            await self._reset_playtest_votes_and_completions(
-                code=map_data.code,
-                thread_id=s.thread_id,
-                verifier_id=s.verifier_id,
-                reason=s.reason,
-                remove_votes=s.remove_votes,
-                remove_completions=s.remove_completions,
-                notify_primary_creator_id=map_data.primary_creator_id,
-            )
-        except Exception as e:
-            await self.bot.api.delete_claimed_idempotency(data)
-            raise e
+    @queue_consumer("api.playtest.reset", struct_type=PlaytestResetEvent, idempotent=True)
+    async def _process_reset_playtest(self, event: PlaytestResetEvent, _: AbstractIncomingMessage) -> None:
+        log.debug(f"[RabbitMQ] Processing playest reset event {event.thread_id=}")
+        playtest_data = await self.bot.api.get_playtest(event.thread_id)
+        map_data = await self.bot.api.get_map(code=playtest_data.code)
+        await self._reset_playtest_votes_and_completions(
+            code=map_data.code,
+            thread_id=event.thread_id,
+            verifier_id=event.verifier_id,
+            reason=event.reason,
+            remove_votes=event.remove_votes,
+            remove_completions=event.remove_completions,
+            notify_primary_creator_id=map_data.primary_creator_id,
+        )
 
 
 class ModActionsDifficultyRatingSelect(discord.ui.Select):
