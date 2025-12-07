@@ -1,82 +1,121 @@
 from __future__ import annotations
 
 from logging import getLogger
-from typing import TYPE_CHECKING, Awaitable, Callable, TypeAlias, TypeVar
+from typing import TYPE_CHECKING, Awaitable, Callable, Type, TypeAlias, TypeVar
 
+import msgspec
 from aio_pika.abc import AbstractIncomingMessage
-
-QueueHandler: TypeAlias = Callable[[AbstractIncomingMessage], Awaitable[None]]
-F = TypeVar("F", bound=Callable[..., Awaitable[None]])
-
-_registered_queue_handlers: list[tuple[str, QueueHandler]] = []
+from genjipk_sdk.internal import ClaimCreateRequest
 
 if TYPE_CHECKING:
     import core
-
+    from utilities.base import BaseService
 
 log = getLogger(__name__)
 
+QueueHandler: TypeAlias = Callable[[AbstractIncomingMessage], Awaitable[None]]
 
-def register_queue_handler(queue_name: str) -> Callable[[F], F]:
-    def decorator(fn: F) -> F:
-        setattr(fn, "_queue_name", queue_name)
-        _registered_queue_handlers.append((queue_name, fn))
-        return fn
+TStruct = TypeVar("TStruct", bound=msgspec.Struct)
+TService = TypeVar("TService", bound="BaseService")
+
+
+def _get_bot(self: BaseService) -> core.Genji:
+    """Get the bot object from a service instance.
+
+    Statically, TService is bound to BaseService, which has `.bot: core.Genji`.
+    """
+    bot = getattr(self, "bot", None)
+    if bot is None:
+        raise RuntimeError("Service instance has no `.bot` attribute.")
+    return bot
+
+
+def queue_consumer(
+    queue_name: str,
+    *,
+    struct_type: Type[TStruct],
+    idempotent: bool = False,
+    pytest_header: str = "x-pytest-enabled",
+) -> Callable[
+    [Callable[[TService, TStruct, AbstractIncomingMessage], Awaitable[None]]],
+    Callable[[TService, AbstractIncomingMessage], Awaitable[None]],
+]:
+    """Decorator for RabbitMQ consumers.
+
+    Usage:
+
+        @queue_consumer("queue.name", struct_type=SomeEvent, idempotent=True)
+        async def handler(self, event: SomeEvent, message: AbstractIncomingMessage) -> None:
+            ...
+
+    Behavior:
+    - Attaches `_queue_name` metadata (for RabbitService discovery).
+    - Always:
+        * checks `pytest_header` in message.headers and short-circuits if truthy,
+        * decodes `message.body` as `struct_type` via msgspec.
+    - If `idempotent=True`:
+        * claims idempotency using `bot.api.claim_idempotency(ClaimCreateRequest(message_id))`,
+        * on handler exception, calls `bot.api.delete_claimed_idempotency(...)` and re-raises.
+    """
+
+    def decorator(
+        fn: Callable[[TService, TStruct, AbstractIncomingMessage], Awaitable[None]],
+    ) -> Callable[[TService, AbstractIncomingMessage], Awaitable[None]]:
+        async def wrapper(self: TService, message: AbstractIncomingMessage) -> None:
+            headers = message.headers or {}
+
+            if headers.get(pytest_header, False):
+                log.debug(
+                    "[RabbitMQ] Pytest message received; skipping processing for %s.",
+                    queue_name,
+                )
+                return
+
+            event = msgspec.json.decode(message.body, type=struct_type)
+
+            if not idempotent:
+                await fn(self, event, message)
+                return
+
+            bot = _get_bot(self)
+            api = bot.api
+
+            claim_data: ClaimCreateRequest | None = None
+
+            if message.message_id:
+                claim_data = ClaimCreateRequest(message.message_id)
+                res = await api.claim_idempotency(claim_data)
+                if not res.claimed:
+                    log.debug(
+                        "[Idempotency] Duplicate message ignored: %s (%s)",
+                        message.message_id,
+                        queue_name,
+                    )
+                    return
+
+            try:
+                await fn(self, event, message)
+            except Exception:
+                if claim_data is not None:
+                    try:
+                        await api.delete_claimed_idempotency(claim_data)
+                    except Exception:
+                        log.exception(
+                            "[Idempotency] Failed to delete claimed idempotency during error cleanup.",
+                        )
+                raise
+
+        setattr(wrapper, "_queue_name", queue_name)
+        setattr(wrapper, "_struct_type", struct_type)
+        setattr(wrapper, "_idempotent", idempotent)
+
+        wrapper.__name__ = fn.__name__
+        wrapper.__doc__ = fn.__doc__
+
+        return wrapper
 
     return decorator
 
 
-def get_registered_handlers() -> list[tuple[str, QueueHandler]]:
-    return _registered_queue_handlers
-
-
-def finalize_queue_handlers(bot: core.Genji) -> dict[str, QueueHandler]:
-    queues: dict[str, QueueHandler] = {}
-
-    log.debug(
-        "Registered queue handlers: %s",
-        [(q, getattr(fn, "__qualname__", str(fn))) for q, fn in _registered_queue_handlers],
-    )
-
-    for queue_name, fn in _registered_queue_handlers:
-        if hasattr(fn, "__self__"):
-            owner = getattr(fn, "__self__", None)
-            if owner and hasattr(owner, "_wrap_job_status"):
-                queues[queue_name] = owner._wrap_job_status(fn)  # type: ignore[attr-defined]  # noqa: SLF001
-            else:
-                queues[queue_name] = fn
-            log.debug("Bound pre-bound handler for %s -> %s", queue_name, fn)
-            continue
-
-        # Search bot attributes for an instance that owns this method
-        for attr_name in dir(bot):
-            instance = getattr(bot, attr_name, None)
-            if instance is None:
-                continue
-
-            bound_candidate = getattr(instance, fn.__name__, None)
-            if not callable(bound_candidate):
-                continue
-
-            # IMPORTANT: attributes like _queue_name are on the underlying function
-            func = getattr(bound_candidate, "__func__", bound_candidate)
-            if getattr(func, "_queue_name", None) != queue_name:
-                continue
-
-            # If the instance inherits BaseService, use its wrapper to report job status
-            if hasattr(instance, "_wrap_job_status"):
-                queues[queue_name] = instance._wrap_job_status(bound_candidate)  # type: ignore[attr-defined]  # noqa: SLF001
-                log.debug("Resolved & wrapped handler %s -> %s.%s", queue_name, type(instance).__name__, fn.__name__)
-            else:
-                queues[queue_name] = bound_candidate  # pyright: ignore[reportArgumentType]
-                log.debug("Resolved handler %s -> %s.%s", queue_name, type(instance).__name__, fn.__name__)
-            break
-        else:
-            log.warning("[✗] Could not resolve handler for queue %s", queue_name)
-
-    log.debug("Queues resolved: %s", list(queues.keys()))
-    return queues
-
-
-async def setup(bot: core.Genji) -> None:
-    """Dummy setup."""
+async def setup(_: core.Genji) -> None:
+    """Dummy setup for extension loading."""

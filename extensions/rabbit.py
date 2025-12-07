@@ -4,7 +4,7 @@ import asyncio
 import os
 import time
 from logging import getLogger
-from typing import TYPE_CHECKING, Awaitable, Callable, TypeAlias, TypeVar
+from typing import TYPE_CHECKING, Awaitable, Callable, TypeVar
 
 from aio_pika import Channel, DeliveryMode, Message, connect_robust
 from aio_pika.abc import AbstractIncomingMessage
@@ -12,7 +12,7 @@ from aio_pika.exceptions import QueueEmpty
 from aio_pika.pool import Pool
 from discord import TextChannel
 
-from extensions._queue_registry import finalize_queue_handlers
+from extensions._queue_registry import QueueHandler
 
 if TYPE_CHECKING:
     from aio_pika.abc import AbstractRobustConnection
@@ -31,7 +31,6 @@ DLQ_PROCESS_INTERVAL = int(os.getenv("DLQ_PROCESS_INTERVAL", "60"))  # seconds b
 DLQ_MAX_PER_QUEUE_TICK = int(os.getenv("DLQ_MAX_PER_QUEUE_TICK", "5000"))  # safety cap per scan
 
 
-QueueHandler: TypeAlias = Callable[[AbstractIncomingMessage], Awaitable[None]]
 F = TypeVar("F", bound=Callable[..., Awaitable[None]])
 
 
@@ -45,7 +44,7 @@ class RabbitService:
         Initializes internal connection and channel pools for RabbitMQ operations, sets up
         startup synchronization primitives, and schedules the initial queue setup task.
         """
-        self._bot = bot
+        self.bot = bot
         self._connection_pool = Pool(self._get_connection, max_size=2)
         self._channel_pool = Pool(self._get_channel, max_size=10)
         self._startup_drain_complete = asyncio.Event()
@@ -59,7 +58,7 @@ class RabbitService:
 
     def start(self) -> None:
         """Start the RabbitMQ client by launching queue setup in the background."""
-        self._queues = finalize_queue_handlers(self._bot)
+        self._queues = self._collect_queue_handlers()
         log.debug("[Rabbit] Queues to consume (resolved): %s", list(self._queues.keys()))
         self._setup_task = asyncio.create_task(self._set_up_queues())
         log.debug("[DLQ] Will scan: %s", self.list_target_dlqs())
@@ -78,7 +77,7 @@ class RabbitService:
         if not self._queues:
             log.warning("[✗] No queue handlers registered at startup.")
 
-        await self._bot.wait_until_ready()
+        await self.bot.wait_until_ready()
         log.debug(f"[→] Queues to consume: {list(self._queues.keys())}")
         for queue_name, handler in self._queues.items():
             log.debug(f"[x] Declaring queue: {queue_name}")
@@ -141,6 +140,56 @@ class RabbitService:
             await channel.default_exchange.publish(message, routing_key=queue_name)
             log.debug(f"[→] Published message to {queue_name}")
 
+    def _collect_queue_handlers(self) -> dict[str, QueueHandler]:
+        """Discover all queue handlers on bot-attached services.
+
+        Looks for methods tagged with `_queue_name` by @queue_consumer.
+        Applies `_wrap_job_status` if present on the owning instance.
+        """
+        queues: dict[str, QueueHandler] = {}
+
+        for attr_name in dir(self.bot):
+            instance = getattr(self.bot, attr_name, None)
+            if instance is None:
+                continue
+
+            for meth_name in dir(instance):
+                candidate = getattr(instance, meth_name)
+                if not callable(candidate):
+                    continue
+
+                func = getattr(candidate, "__func__", candidate)
+                queue_name = getattr(func, "_queue_name", None)
+                if not queue_name:
+                    continue
+
+                # Apply job-status wrapper if available
+                if hasattr(instance, "_wrap_job_status"):
+                    handler: QueueHandler = instance._wrap_job_status(candidate)  # type: ignore[attr-defined]
+                else:
+                    handler = candidate  # type: ignore[assignment]
+
+                if queue_name in queues:
+                    log.warning(
+                        "Duplicate handler for queue %s: existing=%r, new=%s.%s; keeping existing.",
+                        queue_name,
+                        queues[queue_name],
+                        type(instance).__name__,
+                        meth_name,
+                    )
+                    continue
+
+                queues[queue_name] = handler
+                log.debug(
+                    "[Rabbit] Registered handler %s -> %s.%s",
+                    queue_name,
+                    type(instance).__name__,
+                    meth_name,
+                )
+
+        log.debug("[Rabbit] Queues resolved (discovered): %s", list(queues.keys()))
+        return queues
+
     async def _wrap_handler(self, handler: QueueHandler, queue_name: str) -> QueueHandler:
         """Wrap a queue handler to manage errors and startup drain accounting.
 
@@ -193,7 +242,7 @@ class RabbitService:
 
     async def _dlq_processor_loop(self) -> None:
         """Periodic DLQ sweep loop."""
-        await self._bot.wait_until_ready()
+        await self.bot.wait_until_ready()
         while True:
             try:
                 processed = await self._process_all_dlqs_once()
@@ -262,11 +311,11 @@ class RabbitService:
                 processed += 1
                 continue
 
-            guild = self._bot.get_guild(self._bot.config.guild)
+            guild = self.bot.get_guild(self.bot.config.guild)
             if not guild:
                 raise RuntimeError("Why is there no guild")
             content = f"### {dlq_name}\n<@141372217677053952>\n```json\n{msg.body}```"
-            alert_channel = guild.get_channel(self._bot.config.channels.updates.dlq_alerts)
+            alert_channel = guild.get_channel(self.bot.config.channels.updates.dlq_alerts)
             assert isinstance(alert_channel, TextChannel)
             await alert_channel.send(content)
 
