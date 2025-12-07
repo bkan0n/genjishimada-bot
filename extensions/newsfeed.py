@@ -820,7 +820,7 @@ class NewsfeedService:
 
     @queue_consumer("api.newsfeed.create", struct_type=NewsfeedDispatchEvent, idempotent=True)
     async def _process_newsfeed_create(self, event: NewsfeedDispatchEvent, _: AbstractIncomingMessage) -> None:
-        log.debug("[RabbitMQ] Processing newsfeed id: %s", event.newsfeed_id)
+        log.debug(f"[RabbitMQ] Processing newsfeed id: {event.newsfeed_id}")
 
         newsfeed_event = await self.bot.api.get_newsfeed_event(event.newsfeed_id)
         if newsfeed_event is None:
