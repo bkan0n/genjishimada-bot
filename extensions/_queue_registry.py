@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from logging import getLogger
-from typing import TYPE_CHECKING, Awaitable, Callable, Type, TypeAlias, TypeVar
+from typing import TYPE_CHECKING, Awaitable, Callable, Type, TypeAlias, TypeVar, cast
 
 import msgspec
 from aio_pika.abc import AbstractIncomingMessage
@@ -9,17 +9,16 @@ from genjipk_sdk.internal import ClaimCreateRequest
 
 if TYPE_CHECKING:
     import core
-    from utilities.base import BaseService
 
 log = getLogger(__name__)
 
 QueueHandler: TypeAlias = Callable[[AbstractIncomingMessage], Awaitable[None]]
 
 TStruct = TypeVar("TStruct", bound=msgspec.Struct)
-TService = TypeVar("TService", bound="BaseService")
+F = TypeVar("F", bound=Callable[..., Awaitable[None]])
 
 
-def _get_bot(self: BaseService) -> core.Genji:
+def _get_bot(self: object) -> core.Genji:
     """Get the bot object from a service instance.
 
     Statically, TService is bound to BaseService, which has `.bot: core.Genji`.
@@ -27,7 +26,7 @@ def _get_bot(self: BaseService) -> core.Genji:
     bot = getattr(self, "bot", None)
     if bot is None:
         raise RuntimeError("Service instance has no `.bot` attribute.")
-    return bot
+    return cast("core.Genji", bot)
 
 
 def queue_consumer(
@@ -36,10 +35,7 @@ def queue_consumer(
     struct_type: Type[TStruct],
     idempotent: bool = False,
     pytest_header: str = "x-pytest-enabled",
-) -> Callable[
-    [Callable[[TService, TStruct, AbstractIncomingMessage], Awaitable[None]]],
-    Callable[[TService, AbstractIncomingMessage], Awaitable[None]],
-]:
+) -> Callable[[F], F]:
     """Decorator for RabbitMQ consumers.
 
     Usage:
@@ -58,10 +54,8 @@ def queue_consumer(
         * on handler exception, calls `bot.api.delete_claimed_idempotency(...)` and re-raises.
     """
 
-    def decorator(
-        fn: Callable[[TService, TStruct, AbstractIncomingMessage], Awaitable[None]],
-    ) -> Callable[[TService, AbstractIncomingMessage], Awaitable[None]]:
-        async def wrapper(self: TService, message: AbstractIncomingMessage) -> None:
+    def decorator(fn: F) -> F:
+        async def wrapper(self: object, message: AbstractIncomingMessage) -> None:
             headers = message.headers or {}
 
             if headers.get(pytest_header, False):
@@ -112,7 +106,7 @@ def queue_consumer(
         wrapper.__name__ = fn.__name__
         wrapper.__doc__ = fn.__doc__
 
-        return wrapper
+        return cast(F, wrapper)
 
     return decorator
 
