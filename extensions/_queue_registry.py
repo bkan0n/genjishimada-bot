@@ -19,10 +19,7 @@ F = TypeVar("F", bound=Callable[..., Awaitable[None]])
 
 
 def _get_bot(self: object) -> core.Genji:
-    """Get the bot object from a service instance.
-
-    Statically, TService is bound to BaseService, which has `.bot: core.Genji`.
-    """
+    """Get the bot object from a service instance."""
     bot = getattr(self, "bot", None)
     if bot is None:
         raise RuntimeError("Service instance has no `.bot` attribute.")
@@ -36,22 +33,53 @@ def queue_consumer(
     idempotent: bool = False,
     pytest_header: str = "x-pytest-enabled",
 ) -> Callable[[F], F]:
-    """Decorator for RabbitMQ consumers.
+    """Decorator for defining RabbitMQ consumer handlers.
 
-    Usage:
+    This decorator standardizes how queue consumers decode messages,
+    short-circuit pytest messages, and optionally enforce idempotency.
+    It wraps a handler of the form::
 
-        @queue_consumer("queue.name", struct_type=SomeEvent, idempotent=True)
-        async def handler(self, event: SomeEvent, message: AbstractIncomingMessage) -> None:
-            ...
+        async def handler(self, event: StructType, message: AbstractIncomingMessage) -> None
 
-    Behavior:
-    - Attaches `_queue_name` metadata (for RabbitService discovery).
-    - Always:
-        * checks `pytest_header` in message.headers and short-circuits if truthy,
-        * decodes `message.body` as `struct_type` via msgspec.
-    - If `idempotent=True`:
-        * claims idempotency using `bot.api.claim_idempotency(ClaimCreateRequest(message_id))`,
-        * on handler exception, calls `bot.api.delete_claimed_idempotency(...)` and re-raises.
+    and returns a function compatible with the RabbitService consumer engine.
+
+    The wrapper performs these steps:
+
+    1. Checks for a pytest header and skips processing when present.
+    2. Decodes the incoming message body into the specified ``struct_type`` using ``msgspec``.
+    3. If ``idempotent`` is enabled:
+       - Claims idempotency using ``bot.api.claim_idempotency``.
+       - Skips processing when the message has already been consumed.
+       - Automatically deletes the claim if the handler raises an exception.
+    4. Calls the original handler with ``(self, event, message)``.
+
+    Metadata is attached to the wrapper for later inspection by
+    ``RabbitService`` (``_queue_name``, ``_struct_type``, ``_idempotent``).
+
+    Args:
+        queue_name (str):
+            The name of the RabbitMQ queue this handler consumes from.
+        struct_type (Type[TStruct]):
+            The msgspec ``Struct`` type used to decode ``message.body``.
+        idempotent (bool, optional):
+            Whether message processing must be idempotent. If ``True``,
+            the wrapper performs claim/cleanup logic using the bot's API.
+            Defaults to ``False``.
+        pytest_header (str, optional):
+            The message header that, when truthy, causes the consumer
+            to no-op (useful for integration tests). Defaults to ``"x-pytest-enabled"``.
+
+    Returns:
+        Callable[[F], F]:
+            A decorator that transforms the handler into a wrapped version
+            performing decoding, pytest filtering, and optional idempotency enforcement.
+
+    Raises:
+        RuntimeError:
+            If the service instance passed as ``self`` does not expose a ``.bot`` attribute
+            when idempotency is enabled.
+
+
     """
 
     def decorator(fn: F) -> F:
