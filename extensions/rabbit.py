@@ -165,9 +165,9 @@ class RabbitService:
 
                 # Apply job-status wrapper if available
                 if hasattr(instance, "_wrap_job_status"):
-                    handler: QueueHandler = instance._wrap_job_status(candidate)  # type: ignore[attr-defined]
+                    handler: QueueHandler = instance._wrap_job_status(candidate)  # noqa: SLF001
                 else:
-                    handler = candidate  # type: ignore[assignment]
+                    handler = candidate  # pyright: ignore[reportAssignmentType]
 
                 if queue_name in queues:
                     log.warning(
