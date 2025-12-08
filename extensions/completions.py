@@ -39,12 +39,11 @@ from genjipk_sdk.completions import (
     VerificationChangedEvent,
 )
 from genjipk_sdk.difficulties import DIFFICULTY_TO_RANK_MAP, DifficultyAll
-from genjipk_sdk.internal import ClaimCreateRequest
 from genjipk_sdk.maps import MapMasteryCreateRequest, OverwatchCode
 from genjipk_sdk.newsfeed import NewsfeedEvent, NewsfeedRecord, NewsfeedRole
 from genjipk_sdk.users import Notification, RankDetailResponse
 
-from extensions._queue_registry import register_queue_handler
+from extensions._queue_registry import queue_consumer
 from utilities import transformers
 from utilities.base import (
     BaseCog,
@@ -499,77 +498,42 @@ class CompletionsService(BaseService):
         assert isinstance(upvote_channel, TextChannel)
         self.upvote_channel = upvote_channel
 
-    @register_queue_handler("api.completion.autoverification.failed")
-    async def _process_autoverification_failed(self, message: AbstractIncomingMessage) -> None:
-        try:
-            struct = msgspec.json.decode(message.body, type=FailedAutoverifyEvent)
-            if message.headers.get("x-pytest-enabled", False):
-                log.debug("Pytest message received.")
-                return
+    @queue_consumer("api.completion.autoverification.failed", struct_type=FailedAutoverifyEvent)
+    async def _process_autoverification_failed(self, event: FailedAutoverifyEvent, _: AbstractIncomingMessage) -> None:
+        log.debug("[x] [RabbitMQ] Processing failed autoverify message")
+        channel_id = self.bot.config.channels.updates.dlq_alerts
+        guild_id = self.bot.config.guild
+        guild = self.bot.get_guild(guild_id)
+        assert guild
+        channel = guild.get_channel(channel_id)
+        assert isinstance(channel, TextChannel)
 
-            log.debug("[x] [RabbitMQ] Processing failed autoverify message")
-            channel_id = self.bot.config.channels.updates.dlq_alerts
-            guild_id = self.bot.config.guild
-            guild = self.bot.get_guild(guild_id)
-            assert guild
-            channel = guild.get_channel(channel_id)
-            assert isinstance(channel, TextChannel)
+        content = (
+            f"`Submitted Code` {event.submitted_code}\n"
+            f"`Extracted Code` {event.extracted_code_cleaned} "
+            f"{'✅' if event.code_match else '❌'}\n"
+            f"`Submitted Time` {event.submitted_time}\n"
+            f"`Extracted Time` {event.extracted_time} "
+            f"{'✅' if event.time_match else '❌'}\n"
+            f"`User ID` {event.user_id}\n"
+            f"`Extracted User` {event.extracted_user_id} "
+            f"{'✅' if event.user_match else '❌'}\n"
+            f"`Extracted Raw`\n"
+            "```json\n"
+            f"{msgspec.json.encode(event.extracted).decode()}\n"
+            "```"
+        )
+        await channel.send(content)
 
-            content = (
-                f"`Submitted Code` {struct.submitted_code}\n"
-                f"`Extracted Code` {struct.extracted_code_cleaned} "
-                f"{'✅' if struct.code_match else '❌'}\n"
-                f"`Submitted Time` {struct.submitted_time}\n"
-                f"`Extracted Time` {struct.extracted_time} "
-                f"{'✅' if struct.time_match else '❌'}\n"
-                f"`User ID` {struct.user_id}\n"
-                f"`Extracted User` {struct.extracted_user_id} "
-                f"{'✅' if struct.user_match else '❌'}\n"
-                f"`Extracted Raw`\n"
-                "```json\n"
-                f"{msgspec.json.encode(struct.extracted).decode()}\n"
-                "```"
-            )
-            await channel.send(content)
-
-        except Exception as e:
-            raise e
-
-    @register_queue_handler("api.completion.upvote")
-    async def _process_update_upvote_message(self, message: AbstractIncomingMessage) -> None:
-        """Handle incoming RabbitMQ message for completion upvotes.
-
-        Args:
-            message (AbstractIncomingMessage): The received message from the queue.
-        """
-        try:
-            struct = msgspec.json.decode(message.body, type=UpvoteUpdateEvent)
-            if message.headers.get("x-pytest-enabled", False):
-                log.debug("Pytest message received.")
-                return
-
-            log.debug(f"[x] [RabbitMQ] Processing message: {struct.message_id}")
-            await self._handle_upvote_forwarding(struct)
-
-        except Exception as e:
-            raise e
-
-    async def _handle_upvote_forwarding(self, data: UpvoteUpdateEvent) -> None:
-        """Forward a submission message to the upvote channel.
-
-        Retrieves the partial message by ID from the submission channel and
-        forwards it to the configured upvote channel.
-
-        Args:
-            data: UpvoteUpdateEvent
-        """
-        partial_message = self.submission_channel.get_partial_message(data.message_id)
+    @queue_consumer("api.completion.upvote", struct_type=UpvoteUpdateEvent)
+    async def _process_update_upvote_message(self, event: UpvoteUpdateEvent, _: AbstractIncomingMessage) -> None:
+        log.debug(f"[x] [RabbitMQ] Processing upvote event: {event.message_id}")
+        partial_message = self.submission_channel.get_partial_message(event.message_id)
         message = await partial_message.fetch()
         view = ui.LayoutView.from_message(message)
         for c in view.walk_children():
             if isinstance(c, ui.Button):
-                log.debug("ITS HAPPENING")
-                new_count = str(await self.bot.api.get_upvotes_from_message_id(data.message_id))
+                new_count = str(await self.bot.api.get_upvotes_from_message_id(event.message_id))
                 if new_count == "0":
                     return
                 c.label = new_count
@@ -577,71 +541,82 @@ class CompletionsService(BaseService):
         await message.edit(view=view)
         await partial_message.forward(self.upvote_channel)
 
-    @register_queue_handler("api.completion.submission")
-    async def _process_create_submission_message(self, message: AbstractIncomingMessage) -> None:
-        """Handle incoming RabbitMQ message for completion submission.
-
-        Args:
-            message (AbstractIncomingMessage): The received message from the queue.
-        """
-        try:
-            struct = msgspec.json.decode(message.body, type=CompletionCreatedEvent)
-            if message.headers.get("x-pytest-enabled", False):
-                log.debug("Pytest message received.")
-                return
-
-            assert message.message_id
-            data = ClaimCreateRequest(message.message_id)
-            res = await self.bot.api.claim_idempotency(data)
-            if not res.claimed:
-                log.debug("[Idempotency] Duplicate: %s", message.message_id)
-                return
-
-            log.debug(f"[x] [RabbitMQ] Processing message: {struct.completion_id}")
-            await self._handle_verification_queue_message(struct.completion_id)
-
-        except Exception as e:
-            await self.bot.api.delete_claimed_idempotency(data)
-            raise e
-
-    @register_queue_handler("api.completion.verification")
-    async def _process_verification_status_change(self, message: AbstractIncomingMessage) -> None:
-        """Handle incoming RabbitMQ message for verification status update.
-
-        Args:
-            message (AbstractIncomingMessage): The received message from the queue.
-        """
-        try:
-            struct = msgspec.json.decode(message.body, type=VerificationChangedEvent)
-            if message.headers.get("x-pytest-enabled", False):
-                log.debug("Pytest message received.")
-                return
-
-            assert message.message_id
-            data = ClaimCreateRequest(message.message_id)
-            res = await self.bot.api.claim_idempotency(data)
-            if not res.claimed:
-                log.debug("[Idempotency] Duplicate: %s", message.message_id)
-                return
-
-            log.debug(f"[x] [RabbitMQ] Processing message: {struct.completion_id}")
-            await self._handle_verification_status_change(struct)
-
-        except Exception as e:
-            await self.bot.api.delete_claimed_idempotency(data)
-            raise e
-
-    async def _handle_verification_queue_message(self, record_id: int) -> None:
-        """Create a verification message in the queue.
-
-        Args:
-            record_id (int): The record_id of a submission.
-        """
-        data = await self.bot.api.get_completion_submission(record_id)
+    @queue_consumer("api.completion.submission", struct_type=CompletionCreatedEvent, idempotent=True)
+    async def _process_create_submission_message(
+        self, event: CompletionCreatedEvent, _: AbstractIncomingMessage
+    ) -> None:
+        log.debug(f"[x] [RabbitMQ] Processing completion submission event: {event.completion_id}")
+        data = await self.bot.api.get_completion_submission(event.completion_id)
         view = CompletionVerificationView(data, self.bot)
         message = await self.verification_channel.send(view=view)
-        await self.bot.api.edit_completion(record_id, data=CompletionPatchRequest(verification_id=message.id))
+        await self.bot.api.edit_completion(event.completion_id, data=CompletionPatchRequest(verification_id=message.id))
         self.verification_views[message.id] = view
+
+    @queue_consumer("api.completion.verification", struct_type=VerificationChangedEvent, idempotent=True)
+    async def _process_verification_status_change(
+        self, event: VerificationChangedEvent, _: AbstractIncomingMessage
+    ) -> None:
+        log.debug(f"[x] [RabbitMQ] Processing message: {event.completion_id}")
+        _data = await self.bot.api.get_completion_submission(event.completion_id)
+        completion_data = msgspec.convert(_data, CompletionPostVerificationModel, from_attributes=True)
+
+        guild = self.bot.get_guild(self.bot.config.guild)
+        assert guild
+        member = guild.get_member(completion_data.user_id)
+        verifier = await self.bot.api.get_user(event.verified_by)
+        verifier_name = verifier.coalesced_name if verifier and verifier.coalesced_name else "Unknown User"
+        should_notify = await self.bot.notifications.should_notify(
+            completion_data.user_id, Notification.DM_ON_VERIFICATION
+        )
+        view = CompletionView(completion_data, verifier_name=verifier_name)
+        if event.verified:
+            message = await self.submission_channel.send(view=view)
+            await self.bot.api.edit_completion(event.completion_id, data=CompletionPatchRequest(message_id=message.id))
+            if should_notify and member:
+                completion_data = await self.bot.api.get_completion_submission(event.completion_id)
+                _view = CompletionView(completion_data, is_dm=True, verifier_name=verifier_name)
+                with contextlib.suppress(discord.Forbidden):
+                    await member.send(view=_view)
+
+            # Completion
+            if completion_data.completion:
+                await self.bot.xp.grant_user_xp_of_type(completion_data.user_id, "Completion")
+            # World Record
+            if not completion_data.completion and completion_data.hypothetical_rank == 1:
+                previously_granted = await self.bot.api.check_for_previous_world_record_xp(
+                    completion_data.code, completion_data.user_id
+                )
+                if not previously_granted:
+                    await self.bot.xp.grant_user_xp_of_type(completion_data.user_id, "World Record")
+                    await self.bot.api.edit_completion(
+                        event.completion_id, data=CompletionPatchRequest(wr_xp_check=True)
+                    )
+                await self._emit_newsfeed_for_record(completion_data)
+            # Record
+            if (
+                not completion_data.completion
+                and completion_data.hypothetical_rank
+                and completion_data.hypothetical_rank > 1
+            ):
+                await self.bot.xp.grant_user_xp_of_type(completion_data.user_id, "Record")
+                await self._emit_newsfeed_for_record(completion_data)
+
+            await self._process_map_mastery(completion_data.user_id)
+
+        elif should_notify and member:
+            completion_data = await self.bot.api.get_completion_submission(event.completion_id)
+            _view = CompletionView(completion_data, is_dm=True, reason=event.reason, verifier_name=verifier_name)
+            with contextlib.suppress(discord.Forbidden):
+                await member.send(view=_view)
+        if completion_data.verification_id:
+            with contextlib.suppress(discord.Forbidden, discord.NotFound, discord.HTTPException):
+                await (self.verification_channel.get_partial_message(completion_data.verification_id)).delete()
+        if member:
+            await self.auto_skill_role(member)
+        assert completion_data.verification_id
+        stoppable_view = self.verification_views.pop(completion_data.verification_id, None)
+        if stoppable_view:
+            stoppable_view.stop()
 
     async def _emit_newsfeed_for_record(self, data: CompletionSubmissionModel) -> None:
         if not (data.video and data.hypothetical_rank):
@@ -660,73 +635,6 @@ class CompletionsService(BaseService):
         )
         event = NewsfeedEvent(id=None, timestamp=discord.utils.utcnow(), payload=payload, event_type="record")
         await self.bot.api.create_newsfeed(event)
-
-    async def _handle_verification_status_change(self, data: VerificationChangedEvent) -> None:
-        """Handle the change of verification status for a particular record_id.
-
-        Args:
-            data (VerificationChangedEvent): Incoming data for verification status change message.
-        """
-        _data = await self.bot.api.get_completion_submission(data.completion_id)
-        completion_data = msgspec.convert(_data, CompletionPostVerificationModel, from_attributes=True)
-
-        guild = self.bot.get_guild(self.bot.config.guild)
-        assert guild
-        member = guild.get_member(completion_data.user_id)
-        verifier = await self.bot.api.get_user(data.verified_by)
-        verifier_name = verifier.coalesced_name if verifier and verifier.coalesced_name else "Unknown User"
-        should_notify = await self.bot.notifications.should_notify(
-            completion_data.user_id, Notification.DM_ON_VERIFICATION
-        )
-        view = CompletionView(completion_data, verifier_name=verifier_name)
-        if data.verified:
-            message = await self.submission_channel.send(view=view)
-            await self.bot.api.edit_completion(data.completion_id, data=CompletionPatchRequest(message_id=message.id))
-            if should_notify and member:
-                completion_data = await self.bot.api.get_completion_submission(data.completion_id)
-                _view = CompletionView(completion_data, is_dm=True, verifier_name=verifier_name)
-                with contextlib.suppress(discord.Forbidden):
-                    await member.send(view=_view)
-
-            # Completion
-            if completion_data.completion:
-                await self.bot.xp.grant_user_xp_of_type(completion_data.user_id, "Completion")
-            # World Record
-            if not completion_data.completion and completion_data.hypothetical_rank == 1:
-                previously_granted = await self.bot.api.check_for_previous_world_record_xp(
-                    completion_data.code, completion_data.user_id
-                )
-                if not previously_granted:
-                    await self.bot.xp.grant_user_xp_of_type(completion_data.user_id, "World Record")
-                    await self.bot.api.edit_completion(
-                        data.completion_id, data=CompletionPatchRequest(wr_xp_check=True)
-                    )
-                await self._emit_newsfeed_for_record(completion_data)
-            # Record
-            if (
-                not completion_data.completion
-                and completion_data.hypothetical_rank
-                and completion_data.hypothetical_rank > 1
-            ):
-                await self.bot.xp.grant_user_xp_of_type(completion_data.user_id, "Record")
-                await self._emit_newsfeed_for_record(completion_data)
-
-            await self._process_map_mastery(completion_data.user_id)
-
-        elif should_notify and member:
-            completion_data = await self.bot.api.get_completion_submission(data.completion_id)
-            _view = CompletionView(completion_data, is_dm=True, reason=data.reason, verifier_name=verifier_name)
-            with contextlib.suppress(discord.Forbidden):
-                await member.send(view=_view)
-        if completion_data.verification_id:
-            with contextlib.suppress(discord.Forbidden, discord.NotFound, discord.HTTPException):
-                await (self.verification_channel.get_partial_message(completion_data.verification_id)).delete()
-        if member:
-            await self.auto_skill_role(member)
-        assert completion_data.verification_id
-        stoppable_view = self.verification_views.pop(completion_data.verification_id, None)
-        if stoppable_view:
-            stoppable_view.stop()
 
     async def _process_map_mastery(self, user_id: int) -> None:
         """Process and update a user's map mastery progress.

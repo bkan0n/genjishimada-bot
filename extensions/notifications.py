@@ -16,12 +16,10 @@ logger = logging.getLogger(__name__)
 class NotificationService:
     def __init__(self, bot: core.Genji) -> None:
         """Initialize NotificationService."""
-        self._bot = bot
+        self.bot = bot
 
     async def _get_notification_flags(self, user_id: int) -> Notification:
-        resp = await self._bot.session.get(
-            f"http://localhost:8000/api/v3/users/{user_id}/notifications?to_bitmask=true"
-        )
+        resp = await self.bot.session.get(f"http://localhost:8000/api/v3/users/{user_id}/notifications?to_bitmask=true")
         resp.raise_for_status()
         data = await resp.json()
         bitmask = data["notifications"]
@@ -31,7 +29,7 @@ class NotificationService:
 
     async def should_notify(self, user_id: int, notification: Notification) -> bool:
         """Check if a user has allowed notifications for this particular process."""
-        flags = await self._bot.api.get_notification_flags(user_id)
+        flags = await self.bot.api.get_notification_flags(user_id)
         # Bitwise AND: returns non-zero if the notification flag is enabled.
         result = bool(flags & notification)
         logger.debug("User %s: Checking %s: %s", user_id, notification.name, result)
@@ -41,7 +39,7 @@ class NotificationService:
         """Send a DM to the user if the given notification type is enabled."""
         if await self.should_notify(user_id, notification):
             try:
-                user = self._bot.get_user(user_id)
+                user = self.bot.get_user(user_id)
                 assert user
                 await user.send(message)
                 logger.debug("Sent DM to user %s for %s", user_id, notification.name)
